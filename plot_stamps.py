@@ -9,11 +9,13 @@ Stephan Rasp
 import argparse
 import matplotlib
 matplotlib.use("Agg")
-from cosmo_utils.pywgrib import getfobj_ens, getfobj
+from cosmo_utils.pywgrib import getfobj_ens, getfobj, fieldobj
 from cosmo_utils.pyncdf import getfobj_ncdf
 from cosmo_utils.plot import ax_contourf
 from cosmo_utils.diag import mean_spread_fieldobjlist
 from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, ddhhmmss_strtotime, yymmddhhmm
+from cosmo_utils.scores.probab import neighborhood_avg
+from scipy.ndimage.filters import gaussian_filter
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -44,7 +46,12 @@ cmPrec = ((1    , 1     , 1    ),
           (0.392, 0     , 0.627),
           (0.784, 0     , 0.627))
            #(0.1  , 0.1   , 0.784),
-levelsPrec = [0, 1, 3, 10, 30, 100.]
+levelsPrec = [0, 0.3, 1, 3, 10, 30]
+levelsPrec_smooth = [0, 0.03, 0.1, 0.3, 1, 3]
+cmtauc = ("#FFFFFF", "#DFE3BA","#F1D275","#E8A55E","#C06348","#7F002D")
+cmcape = ("#FFFFFF","#FFFFB1","#FFFFAA","#FFFDA3","#FFF99E","#FFF399","#FFED94","#FFE68E","#FFDE89","#FFD584","#FFCB7F","#FFC17A","#FDB675","#F6AA6F","#EE9D6A","#E59064","#DC825E","#D17357","#C56451","#B8534A","#AA4243","#9C2E3C","#8E1334","#7F002D")
+levelstauc = [0, 1, 3, 6, 10, 20, 100]
+levelscape = np.linspace(0, 2500, 25)
 
 # TODO Only works for one date and expid, introduce loops later
 # Load the data
@@ -52,11 +59,74 @@ topdir = datadir + args.expid[0] + '/' + args.date[0] + '/'
 gribfn = gribpref + args.time[0] + precsuf
 ensfobjlist = getfobj_ens(topdir, 'sub', mems = nens, gribfn = gribfn, 
                           dir_prefix = 'ens', fieldn = 'PREC_PERHOUR', para = 2)
+# Calculate ensemble mean and spread
+meanfobj, spreadfobj = mean_spread_fieldobjlist(ensfobjlist)
+
 
 if 'fc_obs_stamps' in args.plot:
     # Load deterministic data
     detfn = topdir + 'det/' + gribfn
     detfobj = getfobj(detfn, fieldn = 'PREC_PERHOUR')
+    
+    # Calculate tau_c  TODO Once cape and prec in same file, implement as derived field
+    capefn = topdir + 'det/' + gribpref + args.time[0] + '_60'
+    capefobj = getfobj(capefn, fieldn = 'CAPE_ML_S')
+    # This is now taken from derive_ncdf
+    ## Coarse graining
+    #n = np.ceil(60./2.8) // 2 * 2 + 1  # Closes odd neighborhood size
+    #prec_field = neighborhood_avg(detfobj.data, n, boundary = True)
+    #cape_field = neighborhood_avg(capefobj.data, n, boundary = True)
+
+    # Gaussian filter
+    sig = 60./2.8/2.   # Sigma for Gaussian filtering 60 km
+    prec_field = gaussian_filter(meanfobj.data, sig)
+    cape_field = gaussian_filter(capefobj.data, sig)
+
+    # Calculate tau_c
+    tau_c = 0.5*(49.58/3600.)*cape_field/prec_field   # Factor from F.Heinlein
+    tau_c[prec_field < 0.1] = np.nan   # Apply low precipitation threshold
+    
+    # Write new fobj
+    tau_c_fobj = fieldobj(\
+        data = tau_c,
+        fieldn = 'tau_c',
+        fieldn_long = 'Convective adjustment timescale',
+        unit = 'hours',
+        levs_inp = detfobj.levs,
+        rlats = detfobj.rlats[:,0],
+        rlons = detfobj.rlons[0,:],
+        polelat = detfobj.polelat,
+        polelon = detfobj.polelon,
+        gribfn = detfn,
+        )
+    
+    # Write new fobj
+    prec_smooth_fobj = fieldobj(\
+        data = prec_field,
+        fieldn = 'tau_c',
+        fieldn_long = 'Convective adjustment timescale',
+        unit = 'hours',
+        levs_inp = detfobj.levs,
+        rlats = detfobj.rlats[:,0],
+        rlons = detfobj.rlons[0,:],
+        polelat = detfobj.polelat,
+        polelon = detfobj.polelon,
+        gribfn = detfn,
+        )
+    
+    # Write new fobj
+    cape_smooth_fobj = fieldobj(\
+        data = cape_field,
+        fieldn = 'tau_c',
+        fieldn_long = 'Convective adjustment timescale',
+        unit = 'hours',
+        levs_inp = detfobj.levs,
+        rlats = detfobj.rlats[:,0],
+        rlons = detfobj.rlons[0,:],
+        polelat = detfobj.polelat,
+        polelon = detfobj.polelon,
+        gribfn = detfn,
+        )
     
     # Load radar data
     dateobj = (yyyymmddhhmmss_strtotime(args.date[0]) + 
@@ -82,7 +152,7 @@ if 'ens_stamps' in args.plot:
         cf, tmp = ax_contourf(ax, fobj, Basemap_drawrivers = False, npars = 0, 
                               nmers = 0, colors = cmPrec, pllevels = levelsPrec,
                               sp_title = 'mem ' + str(i+1))
-        
+    
     titlestr = args.expid[0] + ' ' + args.date[0] + ' + ' + args.time[0]
     fig.suptitle(titlestr, fontsize = 18)
     
@@ -98,26 +168,35 @@ if 'fc_obs_stamps' in args.plot:
                   args.date[0] + '/fc_obs_stamps/')
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
-    # Calculate ensemble mean and spread
-    meanfobj, spreadfobj = mean_spread_fieldobjlist(ensfobjlist)
     
-    fig, axmat = plt.subplots(2, 2, figsize = (8,10))
+    
+    fig, axmat = plt.subplots(2, 3, figsize = (12,10))
     axlist = np.ravel(axmat)
     
-    tmpfobjlist = [detfobj, radarfobj, meanfobj, spreadfobj]
-    titlelist = ['det', 'radar', 'ens mean', 'ens spread']
+    tmpfobjlist = [detfobj, capefobj, tau_c_fobj, prec_smooth_fobj, 
+                   cape_smooth_fobj, meanfobj]
+    titlelist = ['det', 'CAPE', 'TAU_C', 'smooth prec', 'smooth CAPE', 'ens_mean']
+    colorslist = [cmPrec, cmcape, cmtauc, cmPrec, cmcape, cmPrec]
+    levelslist = [levelsPrec, levelscape, levelstauc, levelsPrec_smooth, levelscape,
+                  levelsPrec]
     
-    for i, (ax, fobj, title) in enumerate(zip(axlist, tmpfobjlist, titlelist)):
+    for i, ax in enumerate(axlist):
         plt.sca(ax)
         
-        cf, tmp = ax_contourf(ax, fobj, Basemap_drawrivers = False, npars = 0, 
-                              nmers = 0, colors = cmPrec, pllevels = levelsPrec,
-                              sp_title = title)
-    
+        cf, tmp = ax_contourf(ax, tmpfobjlist[i], Basemap_drawrivers = False, 
+                              npars = 0, nmers = 0, 
+                              colors = colorslist[i], 
+                              pllevels = levelslist[i],
+                              sp_title = titlelist[i],
+                              extend = 'max')
+        if i < 10:
+            cb = fig.colorbar(cf, orientation = 'horizontal', 
+                            fraction = 0.05, pad = 0.05)
     titlestr = args.expid[0] + ' ' + args.date[0] + ' + ' + args.time[0]
     fig.suptitle(titlestr, fontsize = 18)
     
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     plotstr = str(args.time[0])
+    print 'Saving as ', plotdirsub + plotstr
     plt.savefig(plotdirsub + plotstr, dpi = 300)
     plt.close('all')
