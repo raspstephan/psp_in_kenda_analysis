@@ -123,6 +123,7 @@ if 'prec_time' in args.plot:
     totmask = get_totmask(radarts)
     
 savelist = []
+savelist_ens = []
 for it, t in enumerate(timelist):
     # Load the data
     #topdir = datadir + args.expid[0] + '/' + args.date[0] + '/'
@@ -300,11 +301,17 @@ for it, t in enumerate(timelist):
         radarfobj = radarts[it]
         means = [np.mean(radarfobj.data[~totmask])]
         exptag = ''
-        detfobjlist = []
+        tmplist = []
         for exp in args.expid:
             exptag += exp + '_'
             detfobj = load_det(exp, t)
             means += [np.mean(detfobj.data[~totmask])]
+            ensfobjlist = load_ens(exp, t)
+            tmplist2 = []
+            for ensfobj in ensfobjlist:
+                tmplist2.append(np.mean(ensfobj.data[~totmask]))
+            tmplist.append(tmplist2)
+        savelist_ens.append(tmplist)
         exptag = exptag [:-1]
         savelist.append(means)
 
@@ -314,11 +321,21 @@ if 'prec_time' in args.plot:
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
     savemat = np.array(savelist)
-    clist = ['k', 'g', 'r']
+    savemat_ens = np.array(savelist_ens)
+    clist = ['k', 'lime', 'orangered']
+    cycg = [plt.cm.Greens(i) for i in np.linspace(0.1, 0.9, nens)]
+    cycr = [plt.cm.Reds(i) for i in np.linspace(0.1, 0.9, nens)]
+    cyclist = [cycg, cycr]
     labelslist = ['radar'] + args.expid
     fig, ax = plt.subplots(1, 1, figsize = (6, 4))
     for i in range(savemat.shape[1]):
-        ax.plot(tplot, savemat[:,i], c = clist[i], label = labelslist[i])
+        ax.plot(tplot, savemat[:,i], c = clist[i], label = labelslist[i],
+                linewidth = 3)
+    for i in range(savemat_ens.shape[1]):
+        for j in range(savemat_ens.shape[2]):
+            ax.plot(tplot, savemat_ens[:,i,j], c = cyclist[i][j],
+                    zorder = 0.1)
+    
     ax.legend()
     ax.set_xlabel('time [UTC]')
     ax.set_ylabel('di prec [mm/h]')
