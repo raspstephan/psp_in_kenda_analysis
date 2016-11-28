@@ -20,6 +20,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 import os
 from datetime import timedelta
+from scipy.signal import convolve2d
 
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
@@ -54,6 +55,8 @@ cmtauc = ("#FFFFFF", "#DFE3BA","#F1D275","#E8A55E","#C06348","#7F002D")
 cmcape = ("#FFFFFF","#FFFFB1","#FFFFAA","#FFFDA3","#FFF99E","#FFF399","#FFED94","#FFE68E","#FFDE89","#FFD584","#FFCB7F","#FFC17A","#FDB675","#F6AA6F","#EE9D6A","#E59064","#DC825E","#D17357","#C56451","#B8534A","#AA4243","#9C2E3C","#8E1334","#7F002D")
 levelstauc = [0, 1, 3, 6, 10, 20, 100]
 levelscape = np.linspace(0, 2500, 25)
+levelsprob = np.linspace(0,1,21)
+cmprob = [(1,1,1,1)] + [plt.cm.plasma_r(i) for i in np.linspace(0.1, 1, 19)]
 
 # Define loading functions
 def load_det(expid, t):
@@ -66,14 +69,14 @@ def load_det(expid, t):
 def load_radar(t):
     dateobj = (yyyymmddhhmmss_strtotime(args.date[0]) + 
             ddhhmmss_strtotime(t))
-    radardt = timedelta(minutes = 70)   # TODO Is this correct???
+    radardt = timedelta(minutes = 10)   # TODO Is this correct???
     radardateobj = dateobj - radardt
     radarfn = radardir + radarpref + yymmddhhmm(radardateobj) + radarsufx
     radarfobj = getfobj_ncdf(radarfn, fieldn = 'pr', dwdradar = True)
     return radarfobj
 
 def load_radar_ts(time):
-    radardt = timedelta(minutes = 70)
+    radardt = timedelta(minutes = 10)
     dateobj_start = (yyyymmddhhmmss_strtotime(args.date[0]) + 
                      ddhhmmss_strtotime(time[0]) - radardt)
     dateobj_end = (yyyymmddhhmmss_strtotime(args.date[0]) + 
@@ -95,15 +98,85 @@ def load_ens(expid, t):
                               para = 2)
     return ensfobjlist
 
+def load_ens_probab(expid, t, thresh, upscale = False):
+    ensfobjlist = load_ens(expid, t)
+    # TODO: Put in cosmo_utils and implement upscaling
+    kernel = np.ones((upscale,upscale))/float((upscale*upscale))
+    dfield = np.floor(upscale/2.)
+    # Load pure datafields
+    fieldlist = []
+    for fobj in ensfobjlist:
+        if not upscale == False:
+            binfield = np.where(fobj.data>thresh, 1, 0)
+            convfield = convolve2d(binfield, kernel)
+            convfield = convfield[dfield:-dfield, dfield:-dfield]
+            fieldlist.append(np.where(convfield>0., 1, 0))
+        else:
+            fieldlist.append(np.where(fobj.data>thresh, 1, 0))
+    
+    prob = np.mean(fieldlist, axis = 0)
+    # Write new fobj
+    prob_fobj = fieldobj(\
+        data = prob,
+        fieldn = 'ens_prob',
+        fieldn_long = 'ensemble probab',
+        unit = '',
+        levs_inp = fobj.levs,
+        rlats = fobj.rlats[:,0],
+        rlons = fobj.rlons[0,:],
+        polelat = fobj.polelat,
+        polelon = fobj.polelon,
+        gribfn = fobj,
+        )
+    return prob_fobj
+        
+    
+
+
 def load_det_cape(expid, t):
     topdir = datadir + expid + '/' + args.date[0] + '/'
-    if expid in ['ref', 'std'] and args.dateid == '20160606_00_12_':
+    if expid in ['ref', 'std'] and args.dateid[0] == '20160606_00_12_':
         gribfn = gribpref + t + '_60'
     else:
         gribfn = gribpref + t + '_15'
+    
     detfn = topdir + 'det/' + gribfn
     detfobj = getfobj(detfn, fieldn = 'CAPE_ML_S')
     return detfobj
+
+def load_det_tauc(expid, t):
+    
+    capefobj = load_det_cape(expid, t)
+    fobj = load_det(expid, t)
+    # This is now taken from derive_ncdf
+    ## Coarse graining
+    #n = np.ceil(60./2.8) // 2 * 2 + 1  # Closes odd neighborhood size
+    #prec_field = neighborhood_avg(detfobj.data, n, boundary = True)
+    #cape_field = neighborhood_avg(capefobj.data, n, boundary = True)
+
+    # Gaussian filter
+    sig = 60./2.8/2.   # Sigma for Gaussian filtering 60 km
+    prec_field = gaussian_filter(fobj.data, sig)
+    cape_field = gaussian_filter(capefobj.data, sig)
+
+    # Calculate tau_c
+    tau_c = 0.5*(49.58/3600.)*cape_field/prec_field   # Factor from F.Heinlein
+    tau_c[prec_field < 0.02] = np.nan   # Apply low precipitation threshold
+    
+    # Write new fobj
+    tau_c_fobj = fieldobj(\
+        data = tau_c,
+        fieldn = 'tau_c',
+        fieldn_long = 'Convective adjustment timescale',
+        unit = 'hours',
+        levs_inp = fobj.levs,
+        rlats = fobj.rlats[:,0],
+        rlons = fobj.rlons[0,:],
+        polelat = fobj.polelat,
+        polelon = fobj.polelon,
+        gribfn = fobj,
+        )
+    return tau_c_fobj
 
 
 
@@ -264,21 +337,26 @@ for it, t in enumerate(timelist):
             detfobjlist.append(load_det(exp, t))
         exptag = exptag [:-1]
         capefobj = load_det_cape(args.expid[0], t)    
+        taucfobj = load_det_tauc(args.expid[0], t)
         radarfobj = load_radar(t)
         
-        plotdirsub = (plotdir + args.dateid[0] + exptag + '/' + 
+        plotdirsub = (plotdir + args.dateid[0] + '/' + 
                     args.date[0] + '/prec_comp/')
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
-        fig, axmat = plt.subplots(2, 2, figsize = (8, 10))
-        axlist = np.ravel(axmat)
-        
-        plotfobjlist = [radarfobj, capefobj] + detfobjlist
+        plotfobjlist = [radarfobj, capefobj, taucfobj] + detfobjlist
         titlelist = ['radar prec [mm/h]', 'ens mean CAPE [J/kg]',
-                     args.expid[0] + ' det prec [mm/h]',
-                     args.expid[1] + ' det prec [mm/h]']
-        colorslist = [cmPrec, cmcape, cmPrec, cmPrec]
-        levelslist = [levelsPrec, levelscape, levelsPrec, levelsPrec]
+                     'tau_c [h]']
+        colorslist = [cmPrec, cmcape, cmtauc]
+        levelslist = [levelsPrec, levelscape, levelstauc]
+        for e in args.expid:
+            titlelist.append(e + ' det prec [mm/h]')
+            colorslist.append(cmPrec)
+            levelslist.append(levelsPrec)
+            
+        nrows = int(np.ceil(len(plotfobjlist)/3.))
+        fig, axmat = plt.subplots(3, nrows, figsize = (4*nrows, 12))
+        axlist = np.ravel(np.transpose(axmat))
         
         for i, ax in enumerate(axlist):
             plt.sca(ax)
@@ -289,18 +367,74 @@ for it, t in enumerate(timelist):
                                   pllevels = levelslist[i],
                                   sp_title = titlelist[i],
                                   extend = 'max')
-            if i < 2:
-                cb = fig.colorbar(cf, orientation = 'horizontal', 
+            if i < 3:
+                cb = fig.colorbar(cf, orientation = 'vertical', 
                                 fraction = 0.05, pad = 0.0)
         titlestr = args.date[0] + ' + ' + t
         fig.suptitle(titlestr, fontsize = 18)
         
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-        plotstr = str(t)
+        plotstr = exptag + '_' + str(t)
         print 'Saving as ', plotdirsub + plotstr
         plt.savefig(plotdirsub + plotstr, dpi = 300)
         plt.close('all')
         
+        
+    if 'prec_probab' in args.plot:
+        print 'Plotting prec_probab'
+        thresh = 1.
+        exptag = ''
+        probfobjlist = []
+        for exp in args.expid:
+            exptag += exp + '_'
+            probfobjlist.append(load_ens_probab(exp, t, thresh, upscale = 11))
+        exptag = exptag [:-1]
+        capefobj = load_det_cape(args.expid[0], t)    
+        taucfobj = load_det_tauc(args.expid[0], t)
+        radarfobj = load_radar(t)
+        
+        plotdirsub = (plotdir + args.dateid[0] + '/' + 
+                    args.date[0] + '/prec_probab/')
+        if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+        
+        plotfobjlist = [radarfobj, capefobj, taucfobj] + probfobjlist
+        titlelist = ['radar prec [mm/h]', 'ens mean CAPE [J/kg]',
+                     'tau_c [h]']
+        colorslist = [cmPrec, cmcape, cmtauc]
+        levelslist = [levelsPrec, levelscape, levelstauc]
+        for e in args.expid:
+            titlelist.append(e + ' probab > 1 mm/h')
+            colorslist.append(cmprob)
+            levelslist.append(levelsprob)
+            
+        nrows = int(np.ceil(len(plotfobjlist)/3.))
+        fig, axmat = plt.subplots(3, nrows, figsize = (4*nrows, 12))
+        axlist = np.ravel(np.transpose(axmat))
+        
+        for i in range(len(plotfobjlist)):
+            plt.sca(axlist[i])
+            cf, tmp = ax_contourf(axlist[i], plotfobjlist[i],
+                                  Basemap_drawrivers = False, 
+                                  npars = 0, nmers = 0, 
+                                  colors = colorslist[i], 
+                                  pllevels = levelslist[i],
+                                  sp_title = titlelist[i],
+                                  extend = 'max',
+                                  fieldobj_opt = radarfobj,
+                                  pllevels_opt = [thresh])
+
+            cb = fig.colorbar(cf, orientation = 'vertical', 
+                            fraction = 0.05, pad = 0.0)
+        titlestr = args.date[0] + ' + ' + t
+        fig.suptitle(titlestr, fontsize = 18)
+        
+        plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+        plotstr = exptag + '_' + str(t)
+        print 'Saving as ', plotdirsub + plotstr
+        plt.savefig(plotdirsub + plotstr, dpi = 300)
+        plt.close('all')
+    
+    
     if 'prec_time' in args.plot:
         print 'Plotting prec_time'
         radarfobj = radarts[it]
@@ -323,13 +457,15 @@ for it, t in enumerate(timelist):
         savelist.append(means)
 
 if 'prec_time' in args.plot:
-    plotdirsub = (plotdir + args.dateid[0] + exptag + '/' + 
+    plotdirsub = (plotdir + args.dateid[0] + '/' + 
                     args.date[0] + '/prec_time/')
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
     savemat = np.array(savelist)
     savemat_ens = np.array(savelist_ens)
-    clist = ['k', 'lime', 'orangered']
+    clist = (['k'] + 
+             [plt.cm.Set1(i) for i in np.linspace(0, 1, len(args.expid))])
+    
     cycg = [plt.cm.Greens(i) for i in np.linspace(0.1, 0.9, nens)]
     cycr = [plt.cm.Reds(i) for i in np.linspace(0.1, 0.9, nens)]
     cyclist = [cycg, cycr]
@@ -337,20 +473,20 @@ if 'prec_time' in args.plot:
     fig, ax = plt.subplots(1, 1, figsize = (6, 4))
     for i in range(savemat.shape[1]):
         ax.plot(tplot, savemat[:,i], c = clist[i], label = labelslist[i],
-                linewidth = 3)
+                linewidth = 2)
     if args.plotens == 'True':
         for i in range(savemat_ens.shape[1]):
             for j in range(savemat_ens.shape[2]):
                 ax.plot(tplot, savemat_ens[:,i,j], c = cyclist[i][j],
                         zorder = 0.1)
     
-    ax.legend(loc = 2)
+    ax.legend(loc = 2, fontsize = 6)
     ax.set_xlabel('time [UTC]')
     ax.set_ylabel('di prec [mm/h]')
     ax.set_title(args.date[0])
     plt.tight_layout()
     
-    plotstr = str(args.time[0]) + '_' + str(args.time[1])
+    plotstr = exptag + '_' + str(args.time[0]) + '_' + str(args.time[1])
     print 'Saving as ', plotdirsub + plotstr
     plt.savefig(plotdirsub + plotstr, dpi = 300)
     plt.close('all')
