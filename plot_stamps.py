@@ -24,14 +24,16 @@ from datetime import timedelta
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+')
+parser.add_argument('--dateid', metavar = 'dateid', type=str, nargs = '+')
 parser.add_argument('--date', metavar = 'date', type=str, nargs = '+')
 parser.add_argument('--time', metavar = 'time', type=str, nargs = '+')
 parser.add_argument('--plot', metavar = 'plot', type=str, nargs = '+')
+parser.add_argument('--plotens', metavar = 'plotens', type=str, default = 'False')
 args = parser.parse_args()
 
 # General settings
 plotdir = '/e/uwork/extsrasp/plots/'
-datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/20160606_00_12_'   # TODO Date is hardcoded
+datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/' + args.dateid[0]   # TODO Date is hardcoded
 precsuf = '_15'
 gribpref = 'lfff'
 nens = 20
@@ -95,7 +97,10 @@ def load_ens(expid, t):
 
 def load_det_cape(expid, t):
     topdir = datadir + expid + '/' + args.date[0] + '/'
-    gribfn = gribpref + t + '_60'
+    if expid in ['ref', 'std'] and args.dateid == '20160606_00_12_':
+        gribfn = gribpref + t + '_60'
+    else:
+        gribfn = gribpref + t + '_15'
     detfn = topdir + 'det/' + gribfn
     detfobj = getfobj(detfn, fieldn = 'CAPE_ML_S')
     return detfobj
@@ -178,7 +183,7 @@ for it, t in enumerate(timelist):
     # Plot what is to be plotted
     if 'ens_stamps' in args.plot:
         print 'Plotting ens_stamps'
-        plotdirsub = (plotdir + '20160606_00_12_' + args.expid[0] + '/' + 
+        plotdirsub = (plotdir + args.dateid[0] + args.expid[0] + '/' + 
                     args.date[0] + '/ens_stamps/')
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
@@ -210,7 +215,7 @@ for it, t in enumerate(timelist):
     if 'fc_obs_stamps' in args.plot:
         print 'Plotting fc_obs_stamps'
         # TODO Not updated yet
-        plotdirsub = (plotdir + '20160606_00_12_' + args.expid[0] + '/' + 
+        plotdirsub = (plotdir + args.dateid[0] + args.expid[0] + '/' + 
                     args.date[0] + '/fc_obs_stamps/')
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
@@ -261,7 +266,7 @@ for it, t in enumerate(timelist):
         capefobj = load_det_cape(args.expid[0], t)    
         radarfobj = load_radar(t)
         
-        plotdirsub = (plotdir + '20160606_00_12_' + exptag + '/' + 
+        plotdirsub = (plotdir + args.dateid[0] + exptag + '/' + 
                     args.date[0] + '/prec_comp/')
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
@@ -306,17 +311,19 @@ for it, t in enumerate(timelist):
             exptag += exp + '_'
             detfobj = load_det(exp, t)
             means += [np.mean(detfobj.data[~totmask])]
-            ensfobjlist = load_ens(exp, t)
-            tmplist2 = []
-            for ensfobj in ensfobjlist:
-                tmplist2.append(np.mean(ensfobj.data[~totmask]))
-            tmplist.append(tmplist2)
-        savelist_ens.append(tmplist)
+            if args.plotens == 'True':
+                ensfobjlist = load_ens(exp, t)
+                tmplist2 = []
+                for ensfobj in ensfobjlist:
+                    tmplist2.append(np.mean(ensfobj.data[~totmask]))
+                tmplist.append(tmplist2)
+        if args.plotens == 'True':
+            savelist_ens.append(tmplist)
         exptag = exptag [:-1]
         savelist.append(means)
 
 if 'prec_time' in args.plot:
-    plotdirsub = (plotdir + '20160606_00_12_' + exptag + '/' + 
+    plotdirsub = (plotdir + args.dateid[0] + exptag + '/' + 
                     args.date[0] + '/prec_time/')
     if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
     
@@ -331,12 +338,13 @@ if 'prec_time' in args.plot:
     for i in range(savemat.shape[1]):
         ax.plot(tplot, savemat[:,i], c = clist[i], label = labelslist[i],
                 linewidth = 3)
-    for i in range(savemat_ens.shape[1]):
-        for j in range(savemat_ens.shape[2]):
-            ax.plot(tplot, savemat_ens[:,i,j], c = cyclist[i][j],
-                    zorder = 0.1)
+    if args.plotens == 'True':
+        for i in range(savemat_ens.shape[1]):
+            for j in range(savemat_ens.shape[2]):
+                ax.plot(tplot, savemat_ens[:,i,j], c = cyclist[i][j],
+                        zorder = 0.1)
     
-    ax.legend()
+    ax.legend(loc = 2)
     ax.set_xlabel('time [UTC]')
     ax.set_ylabel('di prec [mm/h]')
     ax.set_title(args.date[0])
