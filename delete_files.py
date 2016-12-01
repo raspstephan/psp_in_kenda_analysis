@@ -7,7 +7,8 @@ import os
 tdir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'
 
 dates = ['20160529_00_','20160605_00_','20160606_00_12_']
-exps = ['ref','std','const1','const3','nolowest','sig1','sig3','time10','time20']
+#exps = ['ref','std','const1','const3','nolowest','sig1','sig3','time10','time20']
+exps = ['ref_tl500', 'std2_tl500']
 starts = ['000000', '120000']
 nens = 20
 

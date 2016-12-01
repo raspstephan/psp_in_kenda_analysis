@@ -51,7 +51,7 @@ cmPrec = ((1    , 1     , 1    ),
            #(0.1  , 0.1   , 0.784),
 levelsPrec = [0, 0.3, 1, 3, 10, 30]
 levelsPrec_smooth = [0, 0.03, 0.1, 0.3, 1, 3]
-cmtauc = ("#FFFFFF", "#DFE3BA","#F1D275","#E8A55E","#C06348","#7F002D")
+cmtauc = ("#DAFF47","#EDB400","#E16F56","#BC2D82","#7F008D","#001889")
 cmcape = ("#FFFFFF","#FFFFB1","#FFFFAA","#FFFDA3","#FFF99E","#FFF399","#FFED94","#FFE68E","#FFDE89","#FFD584","#FFCB7F","#FFC17A","#FDB675","#F6AA6F","#EE9D6A","#E59064","#DC825E","#D17357","#C56451","#B8534A","#AA4243","#9C2E3C","#8E1334","#7F002D")
 levelstauc = [0, 1, 3, 6, 10, 20, 100]
 levelscape = np.linspace(0, 2500, 25)
@@ -102,14 +102,12 @@ def load_ens_probab(expid, t, thresh, upscale = False):
     ensfobjlist = load_ens(expid, t)
     # TODO: Put in cosmo_utils and implement upscaling
     kernel = np.ones((upscale,upscale))/float((upscale*upscale))
-    dfield = np.floor(upscale/2.)
     # Load pure datafields
     fieldlist = []
     for fobj in ensfobjlist:
         if not upscale == False:
             binfield = np.where(fobj.data>thresh, 1, 0)
-            convfield = convolve2d(binfield, kernel)
-            convfield = convfield[dfield:-dfield, dfield:-dfield]
+            convfield = convolve2d(binfield, kernel, mode='same')
             fieldlist.append(np.where(convfield>0., 1, 0))
         else:
             fieldlist.append(np.where(fobj.data>thresh, 1, 0))
@@ -256,8 +254,8 @@ for it, t in enumerate(timelist):
     # Plot what is to be plotted
     if 'ens_stamps' in args.plot:
         print 'Plotting ens_stamps'
-        plotdirsub = (plotdir + args.dateid[0] + args.expid[0] + '/' + 
-                    args.date[0] + '/ens_stamps/')
+        plotdirsub = (plotdir + args.dateid[0] + '/' + 
+                      args.date[0] + '/ens_stamps/')
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
         # Load data
@@ -274,14 +272,15 @@ for it, t in enumerate(timelist):
                                   npars = 0, 
                                   nmers = 0, colors = cmPrec, 
                                   pllevels = levelsPrec,
-                                  sp_title = 'mem ' + str(i+1))
+                                  sp_title = 'mem ' + str(i+1),
+                                  extend = 'max')
         
         titlestr = args.expid[0] + ' ' + args.date[0] + ' + ' + t
         fig.suptitle(titlestr, fontsize = 18)
         
         plt.tight_layout(rect=[0, 0.0, 1, 0.98])
-        plotstr = str(t)
-        plt.savefig(plotdirsub + plotstr, dpi = 300)
+        plotstr = args.expid[0] + '_' + str(t)
+        plt.savefig(plotdirsub + plotstr, dpi = 150)
         plt.close('all')
         
         
@@ -325,7 +324,7 @@ for it, t in enumerate(timelist):
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
         plotstr = str(t)
         print 'Saving as ', plotdirsub + plotstr
-        plt.savefig(plotdirsub + plotstr, dpi = 300)
+        plt.savefig(plotdirsub + plotstr, dpi = 150)
         plt.close('all')
         
     if 'prec_comp' in args.plot:
@@ -345,7 +344,7 @@ for it, t in enumerate(timelist):
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
         plotfobjlist = [radarfobj, capefobj, taucfobj] + detfobjlist
-        titlelist = ['radar prec [mm/h]', 'ens mean CAPE [J/kg]',
+        titlelist = ['radar prec [mm/h]', 'ref det CAPE [J/kg]',
                      'tau_c [h]']
         colorslist = [cmPrec, cmcape, cmtauc]
         levelslist = [levelsPrec, levelscape, levelstauc]
@@ -376,7 +375,7 @@ for it, t in enumerate(timelist):
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
         plotstr = exptag + '_' + str(t)
         print 'Saving as ', plotdirsub + plotstr
-        plt.savefig(plotdirsub + plotstr, dpi = 300)
+        plt.savefig(plotdirsub + plotstr, dpi = 150)
         plt.close('all')
         
         
@@ -398,7 +397,7 @@ for it, t in enumerate(timelist):
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
         plotfobjlist = [radarfobj, capefobj, taucfobj] + probfobjlist
-        titlelist = ['radar prec [mm/h]', 'ens mean CAPE [J/kg]',
+        titlelist = ['radar prec [mm/h]', 'ref det CAPE [J/kg]',
                      'tau_c [h]']
         colorslist = [cmPrec, cmcape, cmtauc]
         levelslist = [levelsPrec, levelscape, levelstauc]
@@ -431,7 +430,7 @@ for it, t in enumerate(timelist):
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
         plotstr = exptag + '_' + str(t)
         print 'Saving as ', plotdirsub + plotstr
-        plt.savefig(plotdirsub + plotstr, dpi = 300)
+        plt.savefig(plotdirsub + plotstr, dpi = 150)
         plt.close('all')
     
     
@@ -465,15 +464,54 @@ if 'prec_time' in args.plot:
     savemat_ens = np.array(savelist_ens)
     clist = (['k'] + 
              [plt.cm.Set1(i) for i in np.linspace(0, 1, len(args.expid))])
-    
+    cdict = {'radar':'k',
+             'ref':'b',
+             'std':'r',
+             'sig3':'green',
+             'sig1':'green',
+             'time20':'orange',
+             'time10':'orange',
+             'const3':'purple',
+             'const1':'purple',
+             'nolowest':'gray',
+             'ref_tl500':'lightblue',
+             'std2_tl500':'darkblue',
+             }
+    lwdict = {'radar':2,
+             'ref':2,
+             'std':2,
+             'sig3':1.5,
+             'sig1':1.5,
+             'time20':1.5,
+             'time10':1.5,
+             'const3':1.5,
+             'const1':1.5,
+             'nolowest':1.5,
+             'ref_tl500':1.5,
+             'std2_tl500':1.5,
+             }
+    lsdict = {'radar':'-',
+             'ref':'-',
+             'std':'-',
+             'sig3':'-',
+             'sig1':'--',
+             'time20':'-',
+             'time10':'--',
+             'const3':'-',
+             'const1':'--',
+             'nolowest':'-',
+             'ref_tl500':'-',
+             'std2_tl500':'-',
+             }
     cycg = [plt.cm.Greens(i) for i in np.linspace(0.1, 0.9, nens)]
     cycr = [plt.cm.Reds(i) for i in np.linspace(0.1, 0.9, nens)]
     cyclist = [cycg, cycr]
     labelslist = ['radar'] + args.expid
     fig, ax = plt.subplots(1, 1, figsize = (6, 4))
     for i in range(savemat.shape[1]):
-        ax.plot(tplot, savemat[:,i], c = clist[i], label = labelslist[i],
-                linewidth = 2)
+        l = labelslist[i]
+        ax.plot(tplot, savemat[:,i], c = cdict[l], label = l,
+                linewidth = lwdict[l], linestyle = lsdict[l])
     if args.plotens == 'True':
         for i in range(savemat_ens.shape[1]):
             for j in range(savemat_ens.shape[2]):
@@ -488,7 +526,7 @@ if 'prec_time' in args.plot:
     
     plotstr = exptag + '_' + str(args.time[0]) + '_' + str(args.time[1])
     print 'Saving as ', plotdirsub + plotstr
-    plt.savefig(plotdirsub + plotstr, dpi = 300)
+    plt.savefig(plotdirsub + plotstr, dpi = 150)
     plt.close('all')
         
         
