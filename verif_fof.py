@@ -34,6 +34,8 @@ DATA_DIR='/e/uwork/extsrasp/cosmo_letkf/data_forecast/' + args.expid
 # Config for verification
 plotdir = '/e/uwork/extsrasp/plots/' + args.expid + '/verif/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
+savedir = '/e/uwork/extsrasp/save/' + args.expid + '/verif/'
+if not os.path.exists(savedir): os.makedirs(savedir)
 
 # Loop over time
 tstart = yyyymmddhhmmss_strtotime(args.date_ini)
@@ -134,6 +136,11 @@ plotstr = ('TEMP_T_' + args.date_ini + '_' + args.date_end + '_'
 fig.suptitle(args.expid + '  ' + plotstr)
 fig.savefig(plotdir + plotstr)
 plt.close('all')
+
+# Save array
+savefn = savedir + plotstr
+print 'Saving array as', savefn 
+np.save(savefn, (rmse, mean_bias, meanlev))
 
 
 
