@@ -104,7 +104,7 @@ print 'Number of verif-observations:', np.sum(mask)
 # Flatten masked lists
 flatbias = [item for sublist in bias[mask] for item in sublist]
 flatlev = [item for sublist in obs_lev[mask] for item in sublist]
-bin_edges = np.arange(0, 1100, 50) * 100. # Pa
+bin_edges = np.arange(0, 1000, 50) * 100. # Pa
 
 mean_bias = binned_statistic(flatlev, flatbias, bins = bin_edges)[0]
 rmse = np.sqrt(binned_statistic(flatlev, np.array(flatbias)**2, 
@@ -116,15 +116,15 @@ fig, axarr = plt.subplots(1,2, figsize = (10,5))
 meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
 axarr[0].plot(rmse, meanlev, c = 'k', linewidth = 2)
 axarr[0].set_xlim(0,3)
-axarr[0].set_ylim(0,1100)
+axarr[0].set_ylim(0,1000)
 axarr[0].set_xlabel('T RMSE [K]')
 axarr[0].set_ylabel('Pressure [hPa]')
 axarr[0].set_title('RMSE Temperature')
 axarr[0].invert_yaxis()
-axarr[1].plot([0, 0],[0,1100],c = 'gray')
+axarr[1].plot([0, 0],[0,1000],c = 'gray')
 axarr[1].plot(mean_bias, meanlev, c = 'k', linewidth = 2)
 axarr[1].set_xlim(-3,3)
-axarr[1].set_ylim(0,1100)
+axarr[1].set_ylim(0,1000)
 axarr[1].set_xlabel('T bias [K]')
 axarr[1].set_ylabel('Pressure [hPa]')
 axarr[1].set_title('Bias Temperature')

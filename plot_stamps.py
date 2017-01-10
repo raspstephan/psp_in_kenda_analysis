@@ -25,7 +25,6 @@ from scipy.signal import convolve2d
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+')
-parser.add_argument('--dateid', metavar = 'dateid', type=str, nargs = '+')
 parser.add_argument('--date', metavar = 'date', type=str, nargs = '+')
 parser.add_argument('--time', metavar = 'time', type=str, nargs = '+')
 parser.add_argument('--plot', metavar = 'plot', type=str, nargs = '+')
@@ -34,10 +33,11 @@ args = parser.parse_args()
 
 # General settings
 plotdir = '/e/uwork/extsrasp/plots/'
-datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/' + args.dateid[0]   # TODO Date is hardcoded
+datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'# + args.dateid[0]   # TODO Date is hardcoded
 precsuf = '_15'
 gribpref = 'lfff'
 nens = 20
+
 
 radardir = '/e/uwork/extsrasp/radolan/'
 radarpref = 'raa01-rw_10000-'
@@ -287,7 +287,7 @@ for it, t in enumerate(timelist):
     if 'fc_obs_stamps' in args.plot:
         print 'Plotting fc_obs_stamps'
         # TODO Not updated yet
-        plotdirsub = (plotdir + args.dateid[0] + args.expid[0] + '/' + 
+        plotdirsub = (plotdir + args.expid[0] + '/' + 
                     args.date[0] + '/fc_obs_stamps/')
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
@@ -334,14 +334,11 @@ for it, t in enumerate(timelist):
         for exp in args.expid:
             exptag += exp + '_'
             detfobjlist.append(load_det(exp, t))
-        exptag = exptag [:-1]
+        exptag = exptag[:-1]
         capefobj = load_det_cape(args.expid[0], t)    
         taucfobj = load_det_tauc(args.expid[0], t)
         radarfobj = load_radar(t)
-        
-        plotdirsub = (plotdir + args.dateid[0] + '/' + 
-                    args.date[0] + '/prec_comp/')
-        if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+
         
         plotfobjlist = [radarfobj, capefobj, taucfobj] + detfobjlist
         titlelist = ['radar prec [mm/h]', 'ref det CAPE [J/kg]',
@@ -373,9 +370,11 @@ for it, t in enumerate(timelist):
         fig.suptitle(titlestr, fontsize = 18)
         
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-        plotstr = exptag + '_' + str(t)
-        print 'Saving as ', plotdirsub + plotstr
-        plt.savefig(plotdirsub + plotstr, dpi = 150)
+        plotdir = '/e/uwork/extsrasp/plots/' + exptag + '/prec_comp/'
+        if not os.path.exists(plotdir): os.makedirs(plotdir)
+        plotstr = args.date[0] + '_' + str(t)
+        print 'Saving as ', plotdir + plotstr
+        plt.savefig(plotdir + plotstr, dpi = 150)
         plt.close('all')
         
         
@@ -452,56 +451,55 @@ for it, t in enumerate(timelist):
                 tmplist.append(tmplist2)
         if args.plotens == 'True':
             savelist_ens.append(tmplist)
-        exptag = exptag [:-1]
+        exptag = exptag[:-1]
         savelist.append(means)
 
 if 'prec_time' in args.plot:
-    plotdirsub = (plotdir + args.dateid[0] + '/' + 
-                    args.date[0] + '/prec_time/')
-    if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
+    plotdir = '/e/uwork/extsrasp/plots/' + exptag + '/prec_time/'
+    if not os.path.exists(plotdir): os.makedirs(plotdir)
     
     savemat = np.array(savelist)
     savemat_ens = np.array(savelist_ens)
     clist = (['k'] + 
              [plt.cm.Set1(i) for i in np.linspace(0, 1, len(args.expid))])
     cdict = {'radar':'k',
-             'ref':'b',
-             'std':'r',
-             'sig3':'green',
-             'sig1':'green',
-             'time20':'orange',
-             'time10':'orange',
-             'const3':'purple',
-             'const1':'purple',
-             'nolowest':'gray',
-             'ref_tl500':'lightblue',
-             'std2_tl500':'darkblue',
+             'REF':'b',
+             'REF_TL500':'green',
+             'PSP_TL500':'r',
+             #'sig1':'green',
+             #'time20':'orange',
+             #'time10':'orange',
+             #'const3':'purple',
+             #'const1':'purple',
+             #'nolowest':'gray',
+             #'ref_tl500':'lightblue',
+             #'std2_tl500':'darkblue',
              }
     lwdict = {'radar':2,
-             'ref':2,
-             'std':2,
-             'sig3':1.5,
-             'sig1':1.5,
-             'time20':1.5,
-             'time10':1.5,
-             'const3':1.5,
-             'const1':1.5,
-             'nolowest':1.5,
-             'ref_tl500':1.5,
-             'std2_tl500':1.5,
+             'REF':2,
+             'REF_TL500':2,
+             'PSP_TL500':2,
+             #'sig1':1.5,
+             #'time20':1.5,
+             #'time10':1.5,
+             #'const3':1.5,
+             #'const1':1.5,
+             #'nolowest':1.5,
+             #'ref_tl500':1.5,
+             #'std2_tl500':1.5,
              }
     lsdict = {'radar':'-',
-             'ref':'-',
-             'std':'-',
-             'sig3':'-',
-             'sig1':'--',
-             'time20':'-',
-             'time10':'--',
-             'const3':'-',
-             'const1':'--',
-             'nolowest':'-',
-             'ref_tl500':'-',
-             'std2_tl500':'-',
+             'REF':'-',
+             'REF_TL500':'-',
+             'PSP_TL500':'-',
+             #'sig1':'--',
+             #'time20':'-',
+             #'time10':'--',
+             #'const3':'-',
+             #'const1':'--',
+             #'nolowest':'-',
+             #'ref_tl500':'-',
+             #'std2_tl500':'-',
              }
     cycg = [plt.cm.Greens(i) for i in np.linspace(0.1, 0.9, nens)]
     cycr = [plt.cm.Reds(i) for i in np.linspace(0.1, 0.9, nens)]
@@ -524,10 +522,17 @@ if 'prec_time' in args.plot:
     ax.set_title(args.date[0])
     plt.tight_layout()
     
-    plotstr = exptag + '_' + str(args.time[0]) + '_' + str(args.time[1])
-    print 'Saving as ', plotdirsub + plotstr
-    plt.savefig(plotdirsub + plotstr, dpi = 150)
+    plotstr = args.date[0] + '_' + str(args.time[0]) + '_' + str(args.time[1])
+    print 'Saving as ', plotdir + plotstr
+    plt.savefig(plotdir + plotstr, dpi = 150)
     plt.close('all')
+    
+    savedir = '/e/uwork/extsrasp/save/' + exptag + '/prec_time/'
+    if not os.path.exists(savedir): os.makedirs(savedir)
+
+    savefn = savedir + plotstr
+    print 'Saving array as', savefn
+    np.save(savefn, (tplot, savemat, labelslist))
         
         
         

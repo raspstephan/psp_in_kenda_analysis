@@ -38,14 +38,14 @@ for i, expid in enumerate(args.expid):
 expid_str = expid_str[:-1]
 
 axarr[0].set_xlim(0,3)
-axarr[0].set_ylim(0,1100)
+axarr[0].set_ylim(0,1000)
 axarr[0].set_xlabel('T RMSE [K]')
 axarr[0].set_ylabel('Pressure [hPa]')
 axarr[0].set_title('RMSE Temperature')
 axarr[0].invert_yaxis()
-axarr[1].plot([0, 0],[0,1100],c = 'gray')
+axarr[1].plot([0, 0],[0,1000],c = 'gray')
 axarr[1].set_xlim(-3,3)
-axarr[1].set_ylim(0,1100)
+axarr[1].set_ylim(0,1000)
 axarr[1].set_xlabel('T bias [K]')
 axarr[1].set_ylabel('Pressure [hPa]')
 axarr[1].set_title('Bias Temperature')
