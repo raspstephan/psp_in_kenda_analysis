@@ -24,6 +24,7 @@ parser.add_argument('--date_ini', metavar = 'date_ini', type=str,
                     default = '20160525000000')
 parser.add_argument('--date_end', metavar = 'date_end', type=str,
                     default = '20160610000000')
+parser.add_argument('--var', metavar = 'var', type=str, default = 'T')
 args = parser.parse_args()
 
 
@@ -59,9 +60,11 @@ for t in timelist:
     foffn = (DATA_DIR + '/' + yyyymmddhhmmss(t) + '/det/fof_' +  
              yyyymmddhhmmss(t) + '.nc')
     fof = fdbkfile(foffn)
+    var_tab = fof.table_varno
+    varno = var_tab[args.var]
     
     # Get temp data, T
-    ov = fof.obs_veri(varno=2, obstype=5)
+    ov = fof.obs_veri(varno=varno, obstype=5)
     hdr_inds = ov['hdr_inds']
     hdr_unique = np.unique(hdr_inds)  # Get unique obs labels 
     
@@ -110,30 +113,37 @@ mean_bias = binned_statistic(flatlev, flatbias, bins = bin_edges)[0]
 rmse = np.sqrt(binned_statistic(flatlev, np.array(flatbias)**2, 
                                 bins = bin_edges)[0])
 
+if args.var == 'RH':   # convert to percent
+    mean_bias *= 100.
+    rmse *= 100.
 
 # Plot 
+unitdict = {'T': 'K', 'RH': '%'}
+rmselimdict = {'T': (0,3), 'RH': (0, 40)}
+biaslimdict = {'T': (-3,3), 'RH': (-15,15)}
 fig, axarr = plt.subplots(1,2, figsize = (10,5))
 meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
 axarr[0].plot(rmse, meanlev, c = 'k', linewidth = 2)
-axarr[0].set_xlim(0,3)
+axarr[0].set_xlim(rmselimdict[args.var])
 axarr[0].set_ylim(0,1000)
-axarr[0].set_xlabel('T RMSE [K]')
+axarr[0].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
 axarr[0].set_ylabel('Pressure [hPa]')
-axarr[0].set_title('RMSE Temperature')
+axarr[0].set_title('RMSE ' + args.var)
 axarr[0].invert_yaxis()
 axarr[1].plot([0, 0],[0,1000],c = 'gray')
 axarr[1].plot(mean_bias, meanlev, c = 'k', linewidth = 2)
-axarr[1].set_xlim(-3,3)
+axarr[1].set_xlim(biaslimdict[args.var])
 axarr[1].set_ylim(0,1000)
-axarr[1].set_xlabel('T bias [K]')
+axarr[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
 axarr[1].set_ylabel('Pressure [hPa]')
-axarr[1].set_title('Bias Temperature')
+axarr[1].set_title('Bias ' + args.var)
 axarr[1].invert_yaxis()
 plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
-plotstr = ('TEMP_T_' + args.date_ini + '_' + args.date_end + '_'
+plotstr = ('TEMP_' + args.var + '_' + args.date_ini + '_' + args.date_end + '_'
            + str(args.ver_start_min) + '_' + str(args.ver_end_min))
 fig.suptitle(args.expid + '  ' + plotstr)
+print 'Plotting:', plotdir + plotstr
 fig.savefig(plotdir + plotstr)
 plt.close('all')
 

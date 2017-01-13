@@ -16,9 +16,10 @@ parser.add_argument('--date_ini', metavar = 'date_ini', type=str,
                     default = '20160525000000')
 parser.add_argument('--date_end', metavar = 'date_end', type=str,
                     default = '20160610000000')
+parser.add_argument('--var', metavar = 'var', type=str, default = 'T')
 args = parser.parse_args()
 
-plotstr = ('TEMP_T_' + args.date_ini + '_' + args.date_end + '_'
+plotstr = ('TEMP_' + args.var + '_' + args.date_ini + '_' + args.date_end + '_'
            + str(args.ver_start_min) + '_' + str(args.ver_end_min))
 
 # Plot 
@@ -37,18 +38,21 @@ for i, expid in enumerate(args.expid):
 	axarr[1].plot(mean_bias, meanlev, c = cyc[i], linewidth = 2, label = expid)
 expid_str = expid_str[:-1]
 
-axarr[0].set_xlim(0,3)
+unitdict = {'T': 'K', 'RH': '%'}
+rmselimdict = {'T': (0,3), 'RH': (0, 40)}
+biaslimdict = {'T': (-3,3), 'RH': (-15,15)}
+axarr[0].set_xlim(rmselimdict[args.var])
 axarr[0].set_ylim(0,1000)
-axarr[0].set_xlabel('T RMSE [K]')
+axarr[0].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
 axarr[0].set_ylabel('Pressure [hPa]')
-axarr[0].set_title('RMSE Temperature')
+axarr[0].set_title('RMSE ' + args.var)
 axarr[0].invert_yaxis()
 axarr[1].plot([0, 0],[0,1000],c = 'gray')
-axarr[1].set_xlim(-3,3)
+axarr[1].set_xlim(biaslimdict[args.var])
 axarr[1].set_ylim(0,1000)
-axarr[1].set_xlabel('T bias [K]')
+axarr[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
 axarr[1].set_ylabel('Pressure [hPa]')
-axarr[1].set_title('Bias Temperature')
+axarr[1].set_title('Bias ' + args.var)
 axarr[1].invert_yaxis()
 axarr[1].legend(loc = 1)
 plt.tight_layout(rect=[0, 0.0, 1, 0.95])
