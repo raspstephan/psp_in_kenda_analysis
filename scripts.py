@@ -9,7 +9,8 @@ tint = timedelta(days = 1)
 timelist = make_timelist(tstart, tend, tint)
 ver_start = '600'
 ver_end = '840'
-var = 'RH'
+var = 'T2M'
+obs = 'SYNOP'
 
 for t in timelist:
     #print('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
@@ -25,19 +26,19 @@ for t in timelist:
     for e in ['REF', 'REF_TL500', 'PSP_TL500']:
         print('python verif_fof.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
             yyyymmddhhmmss(t) + ' --date_end ' + yyyymmddhhmmss(t) + ' --var ' + var +  
-            ' --expid ' + e)
+            ' --expid ' + e + ' --obs ' + obs)
         os.system('python verif_fof.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
             yyyymmddhhmmss(t) + ' --date_end ' + yyyymmddhhmmss(t) + ' --var ' + var +  
-            ' --expid ' + e)
+            ' --expid ' + e + ' --obs ' + obs)
     
     # Comparison plot
     allexp = 'REF REF_TL500 PSP_TL500'
     print('python compare_verif.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
             yyyymmddhhmmss(t) + ' --date_end ' + yyyymmddhhmmss(t) + ' --var ' + var +  
-            ' --expid ' + allexp)
+            ' --expid ' + allexp + ' --obs ' + obs)
     os.system('python compare_verif.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
             yyyymmddhhmmss(t) + ' --date_end ' + yyyymmddhhmmss(t) + ' --var ' + var +  
-            ' --expid ' + allexp)
+            ' --expid ' + allexp + ' --obs ' + obs)
 
 # Average prec 
 allexp = 'REF REF_TL500 PSP_TL500'
@@ -52,15 +53,15 @@ allexp = 'REF REF_TL500 PSP_TL500'
 for e in ['REF', 'REF_TL500', 'PSP_TL500']:
     print('python verif_fof.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
         yyyymmddhhmmss(tstart) + ' --date_end ' + yyyymmddhhmmss(tend) + ' --var ' + var +  
-        ' --expid ' + e)
+        ' --expid ' + e + ' --obs ' + obs)
     os.system('python verif_fof.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
         yyyymmddhhmmss(tstart) + ' --date_end ' + yyyymmddhhmmss(tend) + ' --var ' + var +  
-        ' --expid ' + e)
+        ' --expid ' + e + ' --obs ' + obs)
         
 allexp = 'REF REF_TL500 PSP_TL500'
 print('python compare_verif.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
         yyyymmddhhmmss(tstart) + ' --date_end ' + yyyymmddhhmmss(tend) + ' --var ' + var +  
-        ' --expid ' + allexp)
+        ' --expid ' + allexp + ' --obs ' + obs)
 os.system('python compare_verif.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
         yyyymmddhhmmss(tstart) + ' --date_end ' + yyyymmddhhmmss(tend) + ' --var ' + var +  
-        ' --expid ' + allexp)
+        ' --expid ' + allexp + ' --obs ' + obs)

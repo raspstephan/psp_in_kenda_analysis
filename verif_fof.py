@@ -18,15 +18,15 @@ import matplotlib.pyplot as plt
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--expid', metavar = 'expid', type=str)
-parser.add_argument('--ver_start_min', metavar = 'ver_start_min', type=int)
-parser.add_argument('--ver_end_min', metavar = 'ver_end_min', type=int)
+parser.add_argument('--ver_start_min', metavar = 'ver_start_min', type=int, default = 0)
+parser.add_argument('--ver_end_min', metavar = 'ver_end_min', type=int, default = 99999)
 parser.add_argument('--date_ini', metavar = 'date_ini', type=str,
                     default = '20160525000000')
 parser.add_argument('--date_end', metavar = 'date_end', type=str,
                     default = '20160610000000')
 parser.add_argument('--var', metavar = 'var', type=str, default = 'T')
+parser.add_argument('--obs', metavar = 'obs', type=str, default = 'TEMP')
 args = parser.parse_args()
-
 
 # Config for experiment
 FCINT='86400'  # forecast start interval in seconds (24h)
@@ -61,98 +61,140 @@ for t in timelist:
              yyyymmddhhmmss(t) + '.nc')
     fof = fdbkfile(foffn)
     var_tab = fof.table_varno
+    obs_tab = fof.table_obstype
     varno = var_tab[args.var]
+    obsno = obs_tab[args.obs]
     
     # Get temp data, T
-    ov = fof.obs_veri(varno=varno, obstype=5)
+    ov = fof.obs_veri(varno=varno, obstype=obsno)
     hdr_inds = ov['hdr_inds']
     hdr_unique = np.unique(hdr_inds)  # Get unique obs labels 
     
-    # Loop over obs 
-    for obs_id in hdr_unique:
-        obs_date.append(t)
-        obs_time.append(ov['time'][hdr_inds == obs_id][0])
-        obs.append(ov['obs'][hdr_inds == obs_id])
-        verif.append(ov['veri_data'][hdr_inds == obs_id])
-        bias.append(ov['veri_data'][hdr_inds == obs_id] -
-                    ov['obs'][hdr_inds == obs_id])
-        obs_lev.append(ov['level'][hdr_inds == obs_id])
-    
-    
-print 'Total number of observations:', len(obs)
-fig, ax = plt.subplots(1,1, figsize = (6, 4))
-hist_edges = np.arange(0, 60*25, 60)
-tmp = ax.hist(obs_time, bins = hist_edges, color = 'gray')
-xmax = np.max(tmp[0]) * 1.2
-ax.plot([args.ver_start_min, args.ver_start_min], [0, xmax],
-        color = 'red')
-ax.plot([args.ver_end_min, args.ver_end_min], [0, xmax],
-        color = 'red')
-ax.set_xlabel('Time UTC in minutes')
-ax.set_ylabel('Number of TEMP observations')
-plotstr = ('TEMP_timing_' + args.date_ini + '_' + args.date_end)
-ax.set_title(args.expid + '_' + plotstr)
-ax.set_ylim(0, xmax)
-plt.tight_layout()
-fig.savefig(plotdir + plotstr)
-plt.close('all')
+    if args.obs == 'TEMP':
+        # Loop over obs 
+        for obs_id in hdr_unique:
+            obs_date.append(t)
+            obs_time.append(ov['time'][hdr_inds == obs_id][0])
+            obs.append(ov['obs'][hdr_inds == obs_id])
+            verif.append(ov['veri_data'][hdr_inds == obs_id])
+            bias.append(ov['veri_data'][hdr_inds == obs_id] -
+                        ov['obs'][hdr_inds == obs_id])
+            obs_lev.append(ov['level'][hdr_inds == obs_id])
 
-# Height bin the data
-bias = np.array(bias)
-obs_lev = np.array(obs_lev)
-obs_time = np.array(obs_time)
-mask = (obs_time >= args.ver_start_min) & (obs_time <= args.ver_end_min)
-print 'Number of verif-observations:', np.sum(mask)
+    elif args.obs == 'SYNOP':
+        obs_time.extend(list(ov['time']))
+        obs.extend(list(ov['obs']))
+        verif.extend(list(ov['veri_data']))
+        bias.extend(list(ov['veri_data'] - ov['obs']))
 
-# Flatten masked lists
-flatbias = [item for sublist in bias[mask] for item in sublist]
-flatlev = [item for sublist in obs_lev[mask] for item in sublist]
-bin_edges = np.arange(0, 1000, 50) * 100. # Pa
+    else:
+        raise Exception
 
-mean_bias = binned_statistic(flatlev, flatbias, bins = bin_edges)[0]
-rmse = np.sqrt(binned_statistic(flatlev, np.array(flatbias)**2, 
-                                bins = bin_edges)[0])
+unitdict = {'T': 'K', 'RH': '%', 'T2M': 'K'} 
+if args.obs == 'TEMP': 
+    print 'Total number of observations:', len(obs)
+    fig, ax = plt.subplots(1,1, figsize = (6, 4))
+    hist_edges = np.arange(0, 60*25, 60)
+    tmp = ax.hist(obs_time, bins = hist_edges, color = 'gray')
+    xmax = np.max(tmp[0]) * 1.2
+    ax.plot([args.ver_start_min, args.ver_start_min], [0, xmax],
+            color = 'red')
+    ax.plot([args.ver_end_min, args.ver_end_min], [0, xmax],
+            color = 'red')
+    ax.set_xlabel('Time UTC in minutes')
+    ax.set_ylabel('Number of TEMP observations')
+    plotstr = ('TEMP_timing_' + args.date_ini + '_' + args.date_end)
+    ax.set_title(args.expid + '_' + plotstr)
+    ax.set_ylim(0, xmax)
+    plt.tight_layout()
+    fig.savefig(plotdir + plotstr)
+    plt.close('all')
 
-if args.var == 'RH':   # convert to percent
-    mean_bias *= 100.
-    rmse *= 100.
+    # Height bin the data
+    bias = np.array(bias)
+    obs_lev = np.array(obs_lev)
+    obs_time = np.array(obs_time)
+    mask = (obs_time >= args.ver_start_min) & (obs_time <= args.ver_end_min)
+    print 'Number of verif-observations:', np.sum(mask)
 
-# Plot 
-unitdict = {'T': 'K', 'RH': '%'}
-rmselimdict = {'T': (0,3), 'RH': (0, 40)}
-biaslimdict = {'T': (-3,3), 'RH': (-15,15)}
-fig, axarr = plt.subplots(1,2, figsize = (10,5))
-meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
-axarr[0].plot(rmse, meanlev, c = 'k', linewidth = 2)
-axarr[0].set_xlim(rmselimdict[args.var])
-axarr[0].set_ylim(0,1000)
-axarr[0].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
-axarr[0].set_ylabel('Pressure [hPa]')
-axarr[0].set_title('RMSE ' + args.var)
-axarr[0].invert_yaxis()
-axarr[1].plot([0, 0],[0,1000],c = 'gray')
-axarr[1].plot(mean_bias, meanlev, c = 'k', linewidth = 2)
-axarr[1].set_xlim(biaslimdict[args.var])
-axarr[1].set_ylim(0,1000)
-axarr[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
-axarr[1].set_ylabel('Pressure [hPa]')
-axarr[1].set_title('Bias ' + args.var)
-axarr[1].invert_yaxis()
-plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    # Flatten masked lists
+    flatbias = [item for sublist in bias[mask] for item in sublist]
+    flatlev = [item for sublist in obs_lev[mask] for item in sublist]
+    bin_edges = np.arange(0, 1000, 50) * 100. # Pa
 
-plotstr = ('TEMP_' + args.var + '_' + args.date_ini + '_' + args.date_end + '_'
-           + str(args.ver_start_min) + '_' + str(args.ver_end_min))
-fig.suptitle(args.expid + '  ' + plotstr)
-print 'Plotting:', plotdir + plotstr
-fig.savefig(plotdir + plotstr)
-plt.close('all')
+    mean_bias = binned_statistic(flatlev, flatbias, bins = bin_edges)[0]
+    rmse = np.sqrt(binned_statistic(flatlev, np.array(flatbias)**2, 
+                                    bins = bin_edges)[0])
 
-# Save array
-savefn = savedir + plotstr
-print 'Saving array as', savefn 
-np.save(savefn, (rmse, mean_bias, meanlev))
+    if args.var == 'RH':   # convert to percent
+        mean_bias *= 100.
+        rmse *= 100.
 
+    # Plot 
+    unitdict = {'T': 'K', 'RH': '%'}
+    rmselimdict = {'T': (0,3), 'RH': (0, 40)}
+    biaslimdict = {'T': (-3,3), 'RH': (-15,15)}
+    fig, axarr = plt.subplots(1,2, figsize = (10,5))
+    meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
+    axarr[0].plot(rmse, meanlev, c = 'k', linewidth = 2)
+    axarr[0].set_xlim(rmselimdict[args.var])
+    axarr[0].set_ylim(0,1000)
+    axarr[0].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
+    axarr[0].set_ylabel('Pressure [hPa]')
+    axarr[0].set_title('RMSE ' + args.var)
+    axarr[0].invert_yaxis()
+    axarr[1].plot([0, 0],[0,1000],c = 'gray')
+    axarr[1].plot(mean_bias, meanlev, c = 'k', linewidth = 2)
+    axarr[1].set_xlim(biaslimdict[args.var])
+    axarr[1].set_ylim(0,1000)
+    axarr[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
+    axarr[1].set_ylabel('Pressure [hPa]')
+    axarr[1].set_title('Bias ' + args.var)
+    axarr[1].invert_yaxis()
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
+    plotstr = (args.obs + '_' + args.var + '_' + args.date_ini + '_' + args.date_end + '_'
+               + str(args.ver_start_min) + '_' + str(args.ver_end_min))
+    fig.suptitle(args.expid + '  ' + plotstr)
+    print 'Plotting:', plotdir + plotstr
+    fig.savefig(plotdir + plotstr)
+    plt.close('all')
+
+    # Save array
+    savefn = savedir + plotstr
+    print 'Saving array as', savefn 
+    np.save(savefn, (rmse, mean_bias, meanlev))
+
+if args.obs == 'SYNOP':
+    print 'Total number of observations:', len(obs)
+
+    bin_edges = np.arange(0, 26*60, 60)   # Hourly bins
+    time_hist = np.histogram(obs_time, bins = bin_edges)
+    mean_bias = binned_statistic(obs_time, bias, bins = bin_edges)[0]
+    rmse = np.sqrt(binned_statistic(obs_time, np.array(bias)**2, bins = bin_edges)[0])
+
+    fig, ax = plt.subplots(1,1, figsize = (6,5))
+
+    time_plot = bin_edges[:-1] / 60
+    ax.plot(time_plot, mean_bias, linewidth = 2, label = 'bias', c = 'k')
+    ax.plot(time_plot, rmse, linewidth = 2, label = 'rmse', c = 'k', linestyle = '--')
+    ax.set_xlabel('time')
+    ax.set_ylabel(args.var + ' [' + unitdict[args.var] +  ']' )
+    ax.legend()
+    plt.axhline(y=0, zorder = 0.1, c = 'gray')
+
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+
+    plotstr = (args.obs + '_' + args.var + '_' + args.date_ini + '_' + args.date_end)
+    fig.suptitle(args.expid + '  ' + plotstr)
+    print 'Plotting:', plotdir + plotstr
+    fig.savefig(plotdir + plotstr)
+    plt.close('all')
+
+    # Save array
+    savefn = savedir + plotstr
+    print 'Saving array as', savefn 
+    np.save(savefn, (rmse, mean_bias, time_plot))
 
 
         
