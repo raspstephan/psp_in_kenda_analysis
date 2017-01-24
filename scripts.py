@@ -3,24 +3,25 @@ from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, make_timelist, \
     yyyymmddhhmmss
 from datetime import timedelta
 
-tstart = yyyymmddhhmmss_strtotime('20160525120000')
-tend = yyyymmddhhmmss_strtotime('20160609120000')
+tstart = yyyymmddhhmmss_strtotime('20160525000000')
+tend = yyyymmddhhmmss_strtotime('20160610000000')
 tint = timedelta(days = 1)
 timelist = make_timelist(tstart, tend, tint)
 ver_start = '600'
 ver_end = '840'
 var = 'T2M'
 obs = 'SYNOP'
+hint = '48'
 
 for t in timelist:
     print('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
-          ' --time 1 24 --plot prec_time --expid REF REF_TL500 PSP_TL500')
+          ' --time 1 '  + hint + ' --plot prec_time --expid REF REF_TL500 PSP_TL500')
     os.system('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
-              ' --time 1 24 --plot prec_time --expid REF REF_TL500 PSP_TL500')
-    print('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
-          ' --time 1 24 --plot prec_comp --expid REF REF_TL500 PSP_TL500')
-    os.system('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
-              ' --time 1 24 --plot prec_comp --expid REF REF_TL500 PSP_TL500')
+              ' --time 1 '  + hint + ' --plot prec_time --expid REF REF_TL500 PSP_TL500')
+    #print('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
+          #' --time 1 '  + hint + ' --plot prec_comp --expid REF REF_TL500 PSP_TL500')
+    #os.system('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
+              #' --time 1 '  + hint + ' --plot prec_comp --expid REF REF_TL500 PSP_TL500')
     
     # # T verif for each day individually
     # for e in ['REF', 'REF_TL500', 'PSP_TL500']:
@@ -43,9 +44,9 @@ for t in timelist:
 # Average prec 
 allexp = 'REF REF_TL500 PSP_TL500'
 print('python average_prec.py --date_ini '+ yyyymmddhhmmss(tstart) + 
-      ' --date_end '+ yyyymmddhhmmss(tend) +' --time 1 24 --expid ' + allexp)
+      ' --date_end '+ yyyymmddhhmmss(tend) +' --time 1 '  + hint + ' --expid ' + allexp)
 os.system('python average_prec.py --date_ini '+ yyyymmddhhmmss(tstart) + 
-      ' --date_end '+ yyyymmddhhmmss(tend) +' --time 1 24 --expid ' + allexp)
+      ' --date_end '+ yyyymmddhhmmss(tend) +' --time 1 '  + hint + ' --expid ' + allexp)
 
 
 

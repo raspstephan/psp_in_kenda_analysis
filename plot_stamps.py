@@ -517,9 +517,9 @@ if 'prec_time' in args.plot:
                         zorder = 0.1)
     
     ax.legend(loc = 2, fontsize = 6)
-    ax.set_xlabel('time [UTC]')
-    ax.set_ylabel('di prec [mm/h]')
-    ax.set_title(args.date[0])
+    ax.set_xlabel('forecast lead time [h]')
+    ax.set_ylabel('domain-integrated hourly precipitation [mm/h]')
+    ax.set_title('Det forecast started at ' + args.date[0])
     plt.tight_layout()
     
     plotstr = args.date[0] + '_' + str(args.time[0]) + '_' + str(args.time[1])

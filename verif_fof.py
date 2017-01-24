@@ -31,6 +31,7 @@ args = parser.parse_args()
 # Config for experiment
 FCINT='86400'  # forecast start interval in seconds (24h)
 DATA_DIR='/e/uwork/extsrasp/cosmo_letkf/data_forecast/' + args.expid
+hint = 24.
 
 # Config for verification
 plotdir = '/e/uwork/extsrasp/plots/' + args.expid + '/verif/'
@@ -64,6 +65,8 @@ for t in timelist:
     obs_tab = fof.table_obstype
     varno = var_tab[args.var]
     obsno = obs_tab[args.obs]
+    if fof.fb_times()[-1]/60. > 24.:
+        hint = 48
     
     # Get temp data, T
     ov = fof.obs_veri(varno=varno, obstype=obsno)
@@ -94,7 +97,7 @@ unitdict = {'T': 'K', 'RH': '%', 'T2M': 'K'}
 if args.obs == 'TEMP': 
     print 'Total number of observations:', len(obs)
     fig, ax = plt.subplots(1,1, figsize = (6, 4))
-    hist_edges = np.arange(0, 60*25, 60)
+    hist_edges = np.arange(0, 60*(hint+1), 60)
     tmp = ax.hist(obs_time, bins = hist_edges, color = 'gray')
     xmax = np.max(tmp[0]) * 1.2
     ax.plot([args.ver_start_min, args.ver_start_min], [0, xmax],
@@ -168,7 +171,7 @@ if args.obs == 'TEMP':
 if args.obs == 'SYNOP':
     print 'Total number of observations:', len(obs)
 
-    bin_edges = np.arange(0, 26*60, 60)   # Hourly bins
+    bin_edges = np.arange(0, (hint+1)*60, 60)   # Hourly bins
     time_hist = np.histogram(obs_time, bins = bin_edges)
     mean_bias = binned_statistic(obs_time, bias, bins = bin_edges)[0]
     rmse = np.sqrt(binned_statistic(obs_time, np.array(bias)**2, bins = bin_edges)[0])
