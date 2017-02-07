@@ -19,19 +19,20 @@ parser.add_argument('--var', metavar = 'var', type=str, default = 'T')
 parser.add_argument('--obs', metavar = 'obs', type=str, default = 'TEMP')
 parser.add_argument('--hint', metavar = 'hint', type=str, default = '24')
 parser.add_argument('--plot', metavar = 'plot', type=str, nargs = '+')
+parser.add_argument('--ind_days', metavar = 'ind_days', type=str, default = 'True')
 args = parser.parse_args()
 
 
 
-tstart = yyyymmddhhmmss_strtotime('20160525000000')
-tend = yyyymmddhhmmss_strtotime('20160610000000')
+tstart = yyyymmddhhmmss_strtotime(args.tstart)
+tend = yyyymmddhhmmss_strtotime(args.tend)
 tint = timedelta(days = 1)
 timelist = make_timelist(tstart, tend, tint)
-ver_start = '600'
-ver_end = '840'
-var = 'T2M'
-obs = 'SYNOP'
-hint = '48'
+ver_start = args.ver_start
+ver_end = args.ver_end
+var = args.var
+obs = args.obs
+hint = args.hint
 
 for t in timelist:
     if 'prec_time' in args.plot:
@@ -45,7 +46,7 @@ for t in timelist:
         os.system('python plot_stamps.py --date ' + yyyymmddhhmmss(t) + 
                 ' --time 1 '  + hint + ' --plot prec_comp --expid REF REF_TL500 PSP_TL500')
     
-    if 'verif' in args.plot:
+    if 'verif' in args.plot and args.ind_days == 'True':
         # T verif for each day individually
         for e in ['REF', 'REF_TL500', 'PSP_TL500']:
             print('python verif_fof.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
@@ -90,3 +91,8 @@ if 'verif' in args.plot:
     os.system('python compare_verif.py --ver_start_min ' + ver_start + ' --ver_end_min ' + ver_end + ' --date_ini ' +
             yyyymmddhhmmss(tstart) + ' --date_end ' + yyyymmddhhmmss(tend) + ' --var ' + var +  
             ' --expid ' + allexp + ' --obs ' + obs)
+    
+if 'bl_evo' in args.plot:
+    for t in range(1,49):
+        print('python bl_evo.py --expid REF REF_TL500 PSP_TL500 --date 20160606000000 --time ' + str(t) + ' --box_coo 290 340 240 290')
+        os.system('python bl_evo.py --expid REF REF_TL500 PSP_TL500 --date 20160606000000 --time ' + str(t) + ' --box_coo 290 340 240 290')

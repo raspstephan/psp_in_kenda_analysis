@@ -123,9 +123,10 @@ if args.obs == 'TEMP':
     # Flatten masked lists
     flatbias = [item for sublist in bias[mask] for item in sublist]
     flatlev = [item for sublist in obs_lev[mask] for item in sublist]
-    bin_edges = np.arange(0, 1000, 50) * 100. # Pa
+    bin_edges = np.arange(0, 1025, 25) * 100. # Pa
 
     mean_bias = binned_statistic(flatlev, flatbias, bins = bin_edges)[0]
+    #print binned_statistic(flatlev, flatbias, bins = bin_edges, statistic = 'count')
     rmse = np.sqrt(binned_statistic(flatlev, np.array(flatbias)**2, 
                                     bins = bin_edges)[0])
 
