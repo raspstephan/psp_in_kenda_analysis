@@ -35,6 +35,8 @@ else:
 # Set up figure
 if args.obs == 'SYNOP':
     fig, ax = plt.subplots(1, 1, figsize = (6, 5))
+    unitdict = {'T2M': 'K', 'RH2M': '%'}
+    cyc = ['b', 'g', 'r']
 
 if args.obs in ['TEMP', 'AIREP']:
     fig, axarr = plt.subplots(1, 2, figsize = (10, 5))
@@ -121,7 +123,12 @@ for ie, expid in enumerate(args.expid):
 
     # Plot data for each expid
     if args.obs == 'SYNOP':
-        ax.plot()
+        ax.plot(range(len(timelist)), mean_spread, c = cyc[ie], linewidth = 2,
+                linestyle = '--')
+        ax.plot(range(len(timelist)), rmse, c = cyc[ie], linewidth = 2,
+                linestyle = '-', label = expid)
+        ax.plot(range(len(timelist)), mean_bias, c = cyc[ie], linewidth = 2,
+                linestyle = '-.')
 
     if args.obs in ['TEMP', 'AIREP']:
         # Height bin the data
@@ -136,6 +143,21 @@ for ie, expid in enumerate(args.expid):
                       label = expid)
 
 # Finish the plots
+if args.obs == 'SYNOP':
+    ax.set_xlabel('time from start [h]')
+    ax.set_ylabel('[' + unitdict[args.var] +  ']')
+    ax.axhline(0, c = 'gray', zorder = 0.1)
+    ax.legend(loc = 1)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    plotstr = (args.obs + '_' + args.var + '_' + args.date_ana_start + '_' + 
+               args.date_ana_stop)
+    plotdir = '/e/uwork/extsrasp/plots/' + expid_str[:-1] + '/verif_ana/'
+    if not os.path.exists(plotdir): os.makedirs(plotdir)
+    fig.suptitle(expid_str + '  ' + plotstr)
+    print 'Save figure:', plotdir + plotstr
+    fig.savefig(plotdir + plotstr)
+    plt.close('all')
+
 if args.obs == 'TEMP':
     axarr[0].set_xlim(rmselimdict[args.var])
     axarr[0].set_ylim(0,1000)
