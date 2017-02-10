@@ -434,7 +434,7 @@ for it, t in enumerate(timelist):
     
     
     if 'prec_time' in args.plot:
-        print 'Plotting prec_time'
+        #print 'Plotting prec_time'
         radarfobj = radarts[it]
         means = [np.mean(radarfobj.data[~totmask])]
         exptag = ''
@@ -455,6 +455,7 @@ for it, t in enumerate(timelist):
         savelist.append(means)
 
 if 'prec_time' in args.plot:
+    print 'Plotting prec_time'
     plotdir = '/e/uwork/extsrasp/plots/' + exptag + '/prec_time/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
     
@@ -463,9 +464,12 @@ if 'prec_time' in args.plot:
     clist = (['k'] + 
              [plt.cm.Set1(i) for i in np.linspace(0, 1, len(args.expid))])
     cdict = {'radar':'k',
-             'REF':'b',
-             'REF_TL500':'green',
-             'PSP_TL500':'r',
+             'REF':'navy',
+             'REF_TL500':'darkgreen',
+             'PSP_TL500':'maroon',
+             'DA_REF':'cyan',
+             'DA_REF_TL500':'lime',
+             'DA_PSP_TL500':'magenta',
              #'sig1':'green',
              #'time20':'orange',
              #'time10':'orange',
@@ -479,6 +483,9 @@ if 'prec_time' in args.plot:
              'REF':2,
              'REF_TL500':2,
              'PSP_TL500':2,
+             'DA_REF':2,
+             'DA_REF_TL500':2,
+             'DA_PSP_TL500':2,
              #'sig1':1.5,
              #'time20':1.5,
              #'time10':1.5,
@@ -492,6 +499,9 @@ if 'prec_time' in args.plot:
              'REF':'-',
              'REF_TL500':'-',
              'PSP_TL500':'-',
+             'DA_REF':'-',
+             'DA_REF_TL500':'-',
+             'DA_PSP_TL500':'-',
              #'sig1':'--',
              #'time20':'-',
              #'time10':'--',
@@ -516,7 +526,7 @@ if 'prec_time' in args.plot:
                 ax.plot(tplot, savemat_ens[:,i,j], c = cyclist[i][j],
                         zorder = 0.1)
     
-    ax.legend(loc = 2, fontsize = 6)
+    ax.legend(loc = 0, fontsize = 6)
     ax.set_xlabel('forecast lead time [h]')
     ax.set_ylabel('domain-integrated hourly precipitation [mm/h]')
     ax.set_title('Det forecast started at ' + args.date[0])
