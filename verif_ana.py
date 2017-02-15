@@ -148,7 +148,7 @@ for ie, expid in enumerate(args.expid):
 
             else:
                 raise Exception
-        # End timelist
+        # End timeloop
 
     # Plot data for each expid
     if args.obs == 'SYNOP':

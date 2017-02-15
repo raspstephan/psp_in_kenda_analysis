@@ -354,9 +354,9 @@ for it, t in enumerate(timelist):
         fig, axmat = plt.subplots(3, nrows, figsize = (4*nrows, 12))
         axlist = np.ravel(np.transpose(axmat))
         
-        for i, ax in enumerate(axlist):
-            plt.sca(ax)
-            cf, tmp = ax_contourf(ax, plotfobjlist[i],
+        for i, fobj in enumerate(plotfobjlist):
+            plt.sca(axlist[i])
+            cf, tmp = ax_contourf(axlist[i], fobj,
                                   Basemap_drawrivers = False, 
                                   npars = 0, nmers = 0, 
                                   colors = colorslist[i], 
