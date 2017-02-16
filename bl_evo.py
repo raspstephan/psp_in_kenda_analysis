@@ -70,14 +70,25 @@ fig1, axmat1 = plt.subplots(3, ncols, figsize = (4.5*ncols, 14))
 if ncols == 1:
     axmat1 = [axmat1]
 
-fig2, axmat2 = plt.subplots(3, 3, figsize = (12, 13))
-cyc = ['b', 'g', 'r']
-for i, exp in enumerate(args.expid):
-    print 'Exp loop:', i
+fig2, axmat2 = plt.subplots(3, ncols, figsize = (4.5*ncols, 14))
+cdict = {'radar':'k',
+             'REF':'navy',
+             'REF_TL500':'darkgreen',
+             'PSP_TL500':'orange',
+            'DA_REF':'blue',
+            'DA_REF_TL500':'cyan',
+            'DA_PSP_TL500':'red',
+            'DA_PSPv2_TL500':'magenta',
+            'DA_PSP':'maroon',
+             }
+expid_str = ''
+for i, expid in enumerate(args.expid):
+    expid_str += expid + '_'
+    print 'Expid:', expid
     
     # Load precipitation 
     print 'Load precipitation'
-    precfn = datadir + exp + '/' + args.date + '/det/' + gribpref + t  + precsuf
+    precfn = datadir + expid + '/' + args.date + '/det/' + gribpref + t  + precsuf
     precfobj = getfobj(precfn, fieldn = 'PREC_PERHOUR')
 
     maskfobj = deepcopy(precfobj)
@@ -91,17 +102,54 @@ for i, exp in enumerate(args.expid):
                           npars = 0, nmers = 0, 
                           colors = cmPrec, 
                           pllevels = levelsPrec,
-                          sp_title = 'PREC [mm/h] ' + exp,
+                          sp_title = 'PREC [mm/h] ' + expid,
                           extend = 'max',
                           fieldobj_opt = maskfobj,
                           pllevels_opt = [0.5],
                           )
     cb = fig1.colorbar(cf, orientation = 'vertical', 
                             fraction = 0.05, pad = 0.0)
-
+    
+    # Load CAPE
+    capefobj = getfobj(precfn, fieldn = 'CAPE_ML_S')
+    # Plot CAPE in box 
+    plt.sca(axmat1[1,i])
+    cf, tmp = ax_contourf(axmat1[1,i], capefobj,
+                            Basemap_drawrivers = False, 
+                            npars = 0, nmers = 0, 
+                            sp_title = 'CAPE [J/kg] ' + expid,
+                            extend = 'both',
+                            fieldobj_opt = maskfobj,
+                            pllevels_opt = [0.5],
+                            ji0 = (ie1, je1), ji1 = (ie2, je2),
+                            pllevels = np.arange(0,1000,10),
+                            cmap = 'gnuplot2_r'
+                            )
+    cb = fig1.colorbar(cf, orientation = 'vertical', 
+                       fraction=0.043, pad = 0.0)
+    
+    # Load CIN
+    cinfobj = getfobj(precfn, fieldn = 'CIN_ML_S')
+    # Plot CIN in box 
+    plt.sca(axmat1[2,i])
+    cf, tmp = ax_contourf(axmat1[2,i], cinfobj,
+                            Basemap_drawrivers = False, 
+                            npars = 0, nmers = 0, 
+                            sp_title = 'CIN [J/kg] ' + expid,
+                            extend = 'both',
+                            fieldobj_opt = maskfobj,
+                            pllevels_opt = [0.5],
+                            ji0 = (ie1, je1), ji1 = (ie2, je2),
+                            pllevels = np.arange(0,100,1),
+                            cmap = 'gnuplot2_r'
+                            )
+    cb = fig1.colorbar(cf, orientation = 'vertical', 
+                       fraction=0.043, pad = 0.0)
+    
+    
     # Load T or Theta
     print 'Load fields'
-    tfn = datadir + exp + '/' + args.date + '/det/' + gribpref + t  + tsuf
+    tfn = datadir + expid + '/' + args.date + '/det/' + gribpref + t  + tsuf
     tfobj = getfobj(tfn, fieldn = 'T')
     tfield = tfobj.data
     qvfield = getfield(tfn, fieldn = 'QV')
@@ -135,67 +183,80 @@ for i, exp in enumerate(args.expid):
     qvprof = np.mean(np.mean(qvfield[:, ie1:ie2, je1:je2], axis = 2), axis = 1)
     thetaprof = np.mean(np.mean(thetafield[:, ie1:ie2, je1:je2], axis = 2), 
                         axis = 1)
-    if i == 0:
-        refthetafield = thetafield
-        reftheta = thetaprof
-        refexp = exp
-        refwfobj = wfobj
-        refthetagrad = thetagrad
+    #if i == 0:
+        #refthetafield = thetafield
+        #reftheta = thetaprof
+        #refexp = expid
+        #refwfobj = wfobj
+        #refthetagrad = thetagrad
         
-    difftheta = thetaprof - reftheta
+    #difftheta = thetaprof - reftheta
     
-    if i ==1:
-        diffthetafield = thetafield - refthetafield
-        diffthetafobj = deepcopy(tfobj)
-        diffthetafobj.data = diffthetafield
-        diffwfobj = deepcopy(wfobj)
-        diffwfobj.data = wfobj.data - refwfobj.data
-        tl500wfobj = wfobj
-        tl500thetagrad = thetagrad
+    #if i ==1:
+        #diffthetafield = thetafield - refthetafield
+        #diffthetafobj = deepcopy(tfobj)
+        #diffthetafobj.data = diffthetafield
+        #diffwfobj = deepcopy(wfobj)
+        #diffwfobj.data = wfobj.data - refwfobj.data
+        #tl500wfobj = wfobj
+        #tl500thetagrad = thetagrad
         
-    if i ==2:
-        tstdfield = np.sqrt(getfield(tfn, fieldn = 'var245'))
-        qvstdfield = np.sqrt(getfield(tfn, fieldn = 'var247'))
-        tkefield = getfield(tfn, fieldn = 'TKE')
-        tstdprof = np.mean(np.mean(tstdfield[:, ie1:ie2, je1:je2], axis = 2), 
-                           axis = 1)
-        qvstdprof = np.mean(np.nanmean(qvstdfield[:, ie1:ie2, je1:je2], axis = 2), 
-                           axis = 1)
-        tkeprof = np.mean(np.mean(tkefield[:, ie1:ie2, je1:je2], axis = 2), 
-                           axis = 1)
-        plt.sca(axmat2[0,0])
-        axmat2[2,0].plot(tstdprof[lev_max:], range(tstdprof.shape[0])[lev_max:])
-        axmat2[2,1].plot(qvstdprof[lev_max:]*1000., range(tstdprof.shape[0])[lev_max:])
-        axmat2[2,2].plot(tkeprof[lev_max:], range(tstdprof.shape[0])[lev_max:])
+    #if expid == 2:
+        #tstdfield = np.sqrt(getfield(tfn, fieldn = 'var245'))
+        #qvstdfield = np.sqrt(getfield(tfn, fieldn = 'var247'))
+        #tkefield = getfield(tfn, fieldn = 'TKE')
+        #tstdprof = np.mean(np.mean(tstdfield[:, ie1:ie2, je1:je2], axis = 2), 
+                           #axis = 1)
+        #qvstdprof = np.mean(np.nanmean(qvstdfield[:, ie1:ie2, je1:je2], axis = 2), 
+                           #axis = 1)
+        #tkeprof = np.mean(np.mean(tkefield[:, ie1:ie2, je1:je2], axis = 2), 
+                           #axis = 1)
+        #plt.sca(axmat2[0,0])
+        #axmat2[2,0].plot(tstdprof[lev_max:], range(tstdprof.shape[0])[lev_max:])
+        #axmat2[2,1].plot(qvstdprof[lev_max:]*1000., range(tstdprof.shape[0])[lev_max:])
+        #axmat2[2,2].plot(tkeprof[lev_max:], range(tstdprof.shape[0])[lev_max:])
         
-        pspwfobj = wfobj
-        pspthetagrad = thetagrad
+        #pspwfobj = wfobj
+        #pspthetagrad = thetagrad
 
     # Plot
     print 'Plot profiles'
     plt.sca(axmat2[0,0])
     axmat2[0,0].plot(qvprof[lev_max:]*1000., range(tprof.shape[0])[lev_max:], 
-                   label = exp, c = cyc[i])
+                   label = expid, c = cdict[expid])
     axmat2[0,1].plot(thetaprof[lev_max:], range(tprof.shape[0])[lev_max:], 
-                   label = exp, c = cyc[i])
-    axmat2[0,2].plot(difftheta[lev_max:], range(tprof.shape[0])[lev_max:], 
-                   label = exp + '-' + refexp, c = cyc[i])
+                   label = expid, c = cdict[expid])
+    #axmat2[0,2].plot(difftheta[lev_max:], range(tprof.shape[0])[lev_max:], 
+                   #label = expid + '-' + refexp, c = cyc[i])
+                   
+    wdata = wfobj.data[:, ie1:ie2, je1:je2]
+    warray = []
+    thetaarray = []
+    for z in range(wdata.shape[0])[lev_max:]:
+        warray.append(np.ravel(wdata[z,:,:]))
+        thetaarray.append(np.ravel(thetafield[z-1,ie1:ie2, je1:je2] -
+                                   thetaprof[z-1]))
+        
+    axmat2[1,i].boxplot(warray, vert = False, 
+                         labels = range(wdata.shape[0])[lev_max:])
+    axmat2[2,i].boxplot(thetaarray, vert = False, 
+                         labels = range(wdata.shape[0])[lev_max:])
 
 
-for il, lev in enumerate([49,45,41]):
-    plt.sca(axmat1[1,il])
-    cf, tmp = ax_contourf(axmat1[1,il], diffthetafobj,
-                            Basemap_drawrivers = False, 
-                            npars = 0, nmers = 0, lev = lev,
-                            sp_title = 'THETA [K] (REF_TL500 - REF) lvl ' + str(lev+1),
-                            extend = 'both',
-                            fieldobj_opt = maskfobj,
-                            pllevels_opt = [0.5],
-                            ji0 = (ie1, je1), ji1 = (ie2, je2),
-                            pllevels = np.arange(-1,1.1,.1)
-                            )
-    cb = fig1.colorbar(cf, orientation = 'vertical', 
-                       fraction=0.043, pad = 0.0)
+#for il, lev in enumerate([49,45,41]):
+    #plt.sca(axmat1[1,il])
+    #cf, tmp = ax_contourf(axmat1[1,il], diffthetafobj,
+                            #Basemap_drawrivers = False, 
+                            #npars = 0, nmers = 0, lev = lev,
+                            #sp_title = 'THETA [K] (REF_TL500 - REF) lvl ' + str(lev+1),
+                            #extend = 'both',
+                            #fieldobj_opt = maskfobj,
+                            #pllevels_opt = [0.5],
+                            #ji0 = (ie1, je1), ji1 = (ie2, je2),
+                            #pllevels = np.arange(-1,1.1,.1)
+                            #)
+    #cb = fig1.colorbar(cf, orientation = 'vertical', 
+                       #fraction=0.043, pad = 0.0)
     #if il > 0:
         #plt.sca(axmat1[2,il])
         #cf, tmp = ax_contourf(axmat1[2,il], diffwfobj,
@@ -211,7 +272,6 @@ for il, lev in enumerate([49,45,41]):
         #cb = fig1.colorbar(cf, orientation = 'vertical', 
                            #fraction=0.046, pad = 0.0)
         
-plt.sca(axmat1[2,0])
 #cf, tmp = ax_contourf(axmat1[2,0], wfobj,
                         #Basemap_drawrivers = False, 
                         #npars = 0, nmers = 0, lev = 41,
@@ -224,20 +284,21 @@ plt.sca(axmat1[2,0])
                         #)
 #cb = fig1.colorbar(cf, orientation = 'vertical', 
                     #fraction = 0.05, pad = 0.0)
-axmat1[2,0].hist(np.ravel(refthetagrad), range = (-1, 2), bins = 20)
-axmat1[2,1].hist(np.ravel(tl500thetagrad), range = (-1, 2), bins = 20)
-axmat1[2,2].hist(np.ravel(pspthetagrad), range = (-1, 2), bins = 20)
-axmat1[2,0].set_xlabel('THETA grad [K]')
-axmat1[2,0].set_ylabel('Number')
-axmat1[2,0].set_title('THETA lvl 50 - lvl 41 (REF)')
-axmat1[2,1].set_xlabel('THETA grad [K]')
-axmat1[2,1].set_ylabel('Number')
-axmat1[2,1].set_title('THETA lvl 50 - lvl 41 (REF_TL500)')
-axmat1[2,2].set_xlabel('THETA grad [K]')
-axmat1[2,2].set_ylabel('Number')
-axmat1[2,2].set_title('THETA lvl 50 - lvl 41 (PSP_TL500)')
+#axmat1[2,0].hist(np.ravel(refthetagrad), range = (-1, 2), bins = 20)
+#axmat1[2,1].hist(np.ravel(tl500thetagrad), range = (-1, 2), bins = 20)
+#axmat1[2,2].hist(np.ravel(pspthetagrad), range = (-1, 2), bins = 20)
+#axmat1[2,0].set_xlabel('THETA grad [K]')
+#axmat1[2,0].set_ylabel('Number')
+#axmat1[2,0].set_title('THETA lvl 50 - lvl 41 (REF)')
+#axmat1[2,1].set_xlabel('THETA grad [K]')
+#axmat1[2,1].set_ylabel('Number')
+#axmat1[2,1].set_title('THETA lvl 50 - lvl 41 (REF_TL500)')
+#axmat1[2,2].set_xlabel('THETA grad [K]')
+#axmat1[2,2].set_ylabel('Number')
+#axmat1[2,2].set_title('THETA lvl 50 - lvl 41 (PSP_TL500)')
 
 
+plt.sca(axmat1[2,0])
 fig1.suptitle(args.date + ' + ' +  str(t) + 'h', fontsize = 14)
 plt.tight_layout(rect=[0, 0.0, 1, 0.98])
 plotstr1 = args.date + '_' + str(t) + '_' + box_coo_str + '_prec'
@@ -246,61 +307,48 @@ fig1.savefig(plotdir + plotstr1, dpi = 150)
 
 
 ###
-refw = refwfobj.data[:, ie1:ie2, je1:je2]
-refwarray = []
-tl500w = tl500wfobj.data[:, ie1:ie2, je1:je2]
-tl500warray = []
-psp500w = pspwfobj.data[:, ie1:ie2, je1:je2]
-psp500warray = []
-psp500w = pspwfobj.data[:, ie1:ie2, je1:je2]
-psp500warray = []
-for z in range(refw.shape[0])[lev_max:]:
-    refwarray.append(np.ravel(refw[z,:,:]))
-    tl500warray.append(np.ravel(tl500w[z,:,:]))
-    psp500warray.append(np.ravel(psp500w[z,:,:]))
-    
-plt.sca(axmat2[1,0])
+
 
 # Plot w box plots
-warr = [refwarray, tl500warray, psp500warray]
-for ip in range(3):
-    axmat2[1,ip].boxplot(warr[ip], vert = False, 
-                         labels = range(refw.shape[0])[lev_max:])
+for ip in range(len(args.expid)):
     axmat2[1,ip].set_ylabel('level')
     axmat2[1,ip].invert_yaxis()
     axmat2[1,ip].set_title('W distribution ' + args.expid[ip])
     axmat2[1,ip].set_xlabel('w [m/s]')
     axmat2[1,ip].set_xlim((-2,2))
     
+    axmat2[2,ip].set_ylabel('level')
+    axmat2[2,ip].invert_yaxis()
+    axmat2[2,ip].set_title('Theta diff distribution ' + args.expid[ip])
+    axmat2[2,ip].set_xlabel("Theta' [K]")
+    axmat2[2,ip].set_xlim((-4,4))
+    
     # Settings for top row
     axmat2[0,ip].set_ylabel('level')
     axmat2[0,ip].invert_yaxis()
     
-    # Settings for bottom row
-    axmat2[2,ip].set_ylabel('level')
-    axmat2[2,ip].invert_yaxis()
     
 
 # individual settings top row
 axmat2[0,0].legend(loc = 1, fontsize = 6)
-axmat2[0,2].legend(loc = 1, fontsize = 6)
+#axmat2[0,2].legend(loc = 1, fontsize = 6)
 axmat2[0,0].set_xlabel('QV [g/kg]')
 axmat2[0,1].set_xlabel('Theta [K]')
-axmat2[0,2].set_xlabel('Difference Theta [K]')
+#axmat2[0,2].set_xlabel('Difference Theta [K]')
 axmat2[0,0].set_title('QV mean profiles')
 axmat2[0,1].set_title('THETA mean profiles')
-axmat2[0,2].set_title('THETA difference from REF')
+#axmat2[0,2].set_title('THETA difference from REF')
 
-# individual settings top row
-axmat2[2,0].set_xlabel('std(T) [K]')
-axmat2[2,1].set_xlabel('std(QV) [g/kg]')
-axmat2[2,2].set_xlabel('TKE [J/kg]')
-axmat2[2,0].set_xlim((0,0.5))
-axmat2[2,1].set_xlim((0,0.5))
-axmat2[2,2].set_xlim((0,2))
-axmat2[2,0].set_title('Mean BL variability of T (PSP)')
-axmat2[2,1].set_title('Mean BL variability of QV (PSP)')
-axmat2[2,2].set_title('Mean TKE (PSP)')
+## individual settings top row
+#axmat2[2,0].set_xlabel('std(T) [K]')
+#axmat2[2,1].set_xlabel('std(QV) [g/kg]')
+#axmat2[2,2].set_xlabel('TKE [J/kg]')
+#axmat2[2,0].set_xlim((0,0.5))
+#axmat2[2,1].set_xlim((0,0.5))
+#axmat2[2,2].set_xlim((0,2))
+#axmat2[2,0].set_title('Mean BL variability of T (PSP)')
+#axmat2[2,1].set_title('Mean BL variability of QV (PSP)')
+#axmat2[2,2].set_title('Mean TKE (PSP)')
 
 
 fig2.suptitle(args.date + ' + ' + str(t) + 'h', fontsize = 14)

@@ -93,6 +93,6 @@ if 'verif' in args.plot:
             ' --expid ' + allexp + ' --obs ' + obs)
     
 if 'bl_evo' in args.plot:
-    for t in range(1,49):
-        print('python bl_evo.py --expid REF REF_TL500 PSP_TL500 --date 20160606000000 --time ' + str(t) + ' --box_coo 290 340 240 290')
-        os.system('python bl_evo.py --expid REF REF_TL500 PSP_TL500 --date 20160606000000 --time ' + str(t) + ' --box_coo 290 340 240 290')
+    for t in range(12,24):
+        print('python bl_evo.py --expid DA_REF DA_PSP DA_REF_TL500 DA_PSP_TL500 DA_PSPv2_TL500 --date 20160604000000 --time ' + str(t) + ' --box_coo 300 330 200 230')
+        os.system('python bl_evo.py --expid DA_REF DA_PSP DA_REF_TL500 DA_PSP_TL500 DA_PSPv2_TL500 --date 20160604000000 --time ' + str(t) + ' --box_coo 300 330 200 230 &')
