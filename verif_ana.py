@@ -27,6 +27,8 @@ parser.add_argument('--var', metavar = 'var', type=str, default = 'T2M',
                     help = 'Variable to be verified.')
 parser.add_argument('--obs', metavar = 'obs', type=str, default = 'SYNOP',
                     help = 'Observation type: SYNOP, TEMP or AIREP')
+parser.add_argument('--active', metavar = 'active', type=str, default = 'False',
+                    help = 'If True only active observations are used.')
 args = parser.parse_args()
 
 plotstr = (args.obs + '_' + args.var + '_' + args.date_ana_start + '_' + 
@@ -117,42 +119,60 @@ for ie, expid in enumerate(args.expid):
                 continue  # Skip over rest of loop
 
             ov_ekf = ekf.obs_veri(varno=args.var, obstype=args.obs, 
-                                    veri = 'first guess ensemble spread')
+                                    veri = 'first guess ensemble spread',
+                                    )
             ov_fof = fof.obs_veri(varno=args.var, obstype=args.obs, veri = 0)
 
             ens_spread = ov_ekf['veri_data']
             det_bias = ov_fof['veri_data'] - ov_fof['obs']  # neg means fc colder than obs
-            
+            if args.active == 'True':
+                active = [ov_ekf['state']==1]
+            else:
+                active = [ov_ekf['state']>0]
             if args.obs == 'TEMP':
                 # Extend list
                 lev_fof = ov_fof['level']
                 lev_ekf = ov_ekf['level']
                 assert np.array_equal(lev_fof[lev_fof >= 5000.], lev_ekf), 'Dims do not match'
-                spread.extend(list(ens_spread))
-                bias.extend(list(det_bias[lev_fof >= 5000.]))
-                lev.extend(list(lev_ekf))
+                spread.extend(list(ens_spread[active]))
+                bias.extend(list(det_bias[lev_fof >= 5000.][active]))
+                lev.extend(list(lev_ekf[active]))
 
             elif args.obs == 'AIREP':
                 lev_fof = ov_fof['level']
                 lev_ekf = ov_ekf['level']
                 assert lev_fof.shape[0] == lev_ekf.shape[0], 'Dims do not match'
-                spread.extend(list(ens_spread))
-                bias.extend(list(det_bias))
-                lev.extend(list(lev_ekf))
+                spread.extend(list(ens_spread[active]))
+                bias.extend(list(det_bias[active]))
+                lev.extend(list(lev_ekf[active]))
 
             elif args.obs == 'SYNOP':
                 # Get mean values
-                mean_spread.append(np.mean(ens_spread))
-                mean_bias.append(np.mean(det_bias))
-                rmse.append(np.sqrt(np.mean(det_bias**2)))
+                mean_spread.append(np.mean(ens_spread[active]))
+                mean_bias.append(np.mean(det_bias[active]))
+                rmse.append(np.sqrt(np.mean(det_bias[active]**2)))
 
             else:
                 raise Exception
         # End timeloop
 
-    # Plot data for each expid
+        # Plot data for each expid
+        if args.obs == 'SYNOP':
+            np.save(savefn, (mean_spread, mean_bias, rmse))
+
+        if args.obs in ['TEMP', 'AIREP']:
+            if args.var == 'RH':
+                spread = np.array(spread) * 100.   # %
+                bias = np.array(bias) * 100.   # %
+            # Height bin the data
+            mean_spread = binned_statistic(lev, spread, bins = bin_edges)[0]
+            mean_bias = binned_statistic(lev, bias, bins = bin_edges)[0]
+            rmse = np.sqrt(binned_statistic(lev, np.array(bias)**2, 
+                                        bins = bin_edges)[0])
+            np.save(savefn, (mean_spread, mean_bias, rmse))
+        
+        # Plot data for each expid
     if args.obs == 'SYNOP':
-        np.save(savefn, (mean_spread, mean_bias, rmse))
         ax.plot(range(1, len(timelist)+1), mean_spread, c = cdict[expid], linewidth = 2,
                 linestyle = '--')
         ax.plot(range(1, len(timelist)+1), rmse, c = cdict[expid], linewidth = 2,
@@ -161,15 +181,6 @@ for ie, expid in enumerate(args.expid):
                 linestyle = ':')
 
     if args.obs in ['TEMP', 'AIREP']:
-        if args.var == 'RH':
-            spread = np.array(spread) * 100.   # %
-            bias = np.array(bias) * 100.   # %
-        # Height bin the data
-        mean_spread = binned_statistic(lev, spread, bins = bin_edges)[0]
-        mean_bias = binned_statistic(lev, bias, bins = bin_edges)[0]
-        rmse = np.sqrt(binned_statistic(lev, np.array(bias)**2, 
-                                    bins = bin_edges)[0])
-        np.save(savefn, (mean_spread, mean_bias, rmse))
         axarr[0].plot(rmse, meanlev, c = cdict[expid], linewidth = 2)
         axarr[0].plot(mean_spread, meanlev, c = cdict[expid], linewidth = 2,
                       linestyle = '--')
