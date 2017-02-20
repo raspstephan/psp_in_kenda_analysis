@@ -204,7 +204,7 @@ for ie, expid in enumerate(args.expid):
             mean_bias = np.array(mean_bias)
             rmse = np.array(rmse)
             if args.composite == 'True':
-                hour_bins = np.arange(-0.5, 25.5, 1)
+                hour_bins = np.arange(-0.5, 24.5, 1)
                 mean_spread = binned_statistic(hourlist, mean_spread, 
                                                bins = hour_bins)[0]
                 mean_bias = binned_statistic(hourlist, mean_bias, 
