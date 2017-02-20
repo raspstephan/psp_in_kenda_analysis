@@ -33,8 +33,8 @@ parser.add_argument('--var', metavar = 'var', type=str, default = 'T2M',
                     help = 'Variable to be verified.')
 parser.add_argument('--obs', metavar = 'obs', type=str, default = 'SYNOP',
                     help = 'Observation type: SYNOP, TEMP or AIREP')
-parser.add_argument('--active', metavar = 'active', type=str, default = 'False',
-                    help = 'If True only active observations are used.')
+parser.add_argument('--state', metavar = 'state', type=str, default = 'all',
+                    help = 'Obs state: all (default), active or active_passive')
 parser.add_argument('--composite', metavar = 'composite', type=str, 
                     default = 'False',
                     help = 'If True diurnal composite is plotted for SYNOP')
@@ -45,7 +45,7 @@ args = parser.parse_args()
 
 plotstr = (args.obs + '_' + args.var + '_' + args.date_ana_start + '_' + 
            args.date_ana_stop + '_' + str(args.ver_int_start).zfill(2) + 
-           '_' + str(args.ver_int_stop).zfill(2))
+           '_' + str(args.ver_int_stop).zfill(2) + '_' + args.state)
 if args.composite == 'True':
     plotstr += '_composite'
 
@@ -153,15 +153,28 @@ for ie, expid in enumerate(args.expid):
 
             ens_spread = ov_ekf['veri_data']
             det_bias = ov_fof['veri_data'] - ov_fof['obs']  # neg means fc colder than obs
-            if args.active == 'True':
+            print 'Total number of observations:', ov_ekf['state'].shape[0]
+            if args.state == 'active_passive':
+                active = [ov_ekf['state']<=5]   # Active and passive
+            elif args.state == 'active':
                 active = [ov_ekf['state']==1]
             else:
-                active = [ov_ekf['state']>0]
+                active = [ov_ekf['state']>=0]   # all
+            print 'Number of obs used for verification:', np.sum(active)
             if args.obs == 'TEMP':
                 # Extend list
                 lev_fof = ov_fof['level']
                 lev_ekf = ov_ekf['level']
-                assert np.array_equal(lev_fof[lev_fof >= 5000.], lev_ekf), 'Dims do not match'
+                
+                # Make fof's and ekf's match
+                match = np.zeros(lev_fof.shape, dtype = bool)
+                l = 0
+                for k in range(len(lev_fof)):
+                    if l < len(lev_ekf):
+                        if lev_fof[k] == lev_ekf[l]:
+                            match[k] = True
+                            l += 1
+                assert np.array_equal(lev_fof[match], lev_ekf), 'Dims do not match'
                 spread.extend(list(ens_spread[active]))
                 bias.extend(list(det_bias[lev_fof >= 5000.][active]))
                 lev.extend(list(lev_ekf[active]))
