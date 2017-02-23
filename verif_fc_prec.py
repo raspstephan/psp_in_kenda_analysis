@@ -29,7 +29,7 @@ if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
 elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
     datadir = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
     radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
-    plotdir = '/home/s/S.Rasp/dwd_work/plots/'
+    plotdir = '/home/s/S.Rasp/dwd_plots/plots/'
     savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
 else: 
     raise Exception('Working directory not recognized:' + os.getcwd())
@@ -38,6 +38,7 @@ radarpref = 'raa01-rw_10000-'
 radarsufx = '-dwd---bin.nc'
 precsuf = '_15'
 gribpref = 'lfff'
+nens = 20
 # Load radar tot mask
 
 totmask = np.load('./radar_tot_mask.npy')
@@ -64,6 +65,14 @@ def load_radar(date, t):
     radarfn = radardir + radarpref + yymmddhhmm(radardateobj) + radarsufx
     radarfobj = getfobj_ncdf(radarfn, fieldn = 'pr', dwdradar = True)
     return radarfobj
+
+def load_ens(datadir, date, t):
+    topdir = datadir + '/' + date + '/'
+    gribfn = gribpref + t + precsuf
+    ensfobjlist = getfobj_ens(topdir, 'sub', mems = nens, gribfn = gribfn, 
+                              dir_prefix = 'ens', fieldn = 'PREC_PERHOUR', 
+                              para = 4)
+    return ensfobjlist
 
 
 # Arguments
@@ -94,9 +103,11 @@ cdict = {'radar':'k',
              'REF_TL500':'darkgreen',
              'PSP_TL500':'orange',
             'DA_REF':'blue',
+            'DA_REF_ens':'blue',
             'DA_REF_TL500':'cyan',
             'DA_PSP_TL500':'red',
             'DA_PSPv2_TL500':'magenta',
+            'DA_PSPv2_TL500_ens':'magenta',
             'DA_PSP':'maroon',
              }
 
@@ -121,75 +132,141 @@ for ie, expid in enumerate(args.expid):
     expid_str += expid + '_'
     DATA_DIR = datadir + expid
     
-    if args.ana == 'det':
-        radarmean = []
-        detmean = []
+    # Check if saved data is available
+    savedir = savedir_base + expid + '/verif_fc_prec/'
+    if not os.path.exists(savedir): os.makedirs(savedir)
+    savefn = savedir + plotstr + '.npy'
+    print 'Try to load pre-saved data:', savefn
+    if os.path.exists(savefn):
+        print 'Found pre-saved data.'
+        if args.ana == 'det':
+            radarmean, detmean, detrmse, meanfss = np.load(savefn)
+        if args.ana == 'ens':
+            ensspread, ensrmse = np.load(savefn)
+    else:
+        print 'Did not find pre-saved data, compute!'
+        
         hourlist =[]
-        detrmse = []
-        fsslist = []
-    
-    for t in timelist:
-        print t
-        date = yyyymmddhhmmss(t)
-        for h in range(1, args.hint+1):
-            print 'Hour', h
-            hourlist.append(h)
-            # Load data 
-            if args.ana == 'det':
-                # Det run 
-                detfobj = load_det(DATA_DIR, date, ddhhmmss(timedelta(hours=h)))
+        if args.ana == 'det':
+            radarmean = []
+            detmean = []
+            detrmse = []
+            fsslist = []
+            
+        if args.ana == 'ens':
+            spreadlist = []
+            rmselist = []
+        
+        for t in timelist:
+            print t
+            date = yyyymmddhhmmss(t)
+            for h in range(1, args.hint+1):
+                print 'Hour', h
+                hourlist.append(h)
+                # Load data 
                 radarfobj = load_radar(date, ddhhmmss(timedelta(hours=h)))
-                
-                radarmean.append(np.mean(radarfobj.data[~totmask]))
-                detmean.append(np.mean(detfobj.data[~totmask]))
-                
-                # Upscaled RMSE
                 nanradar = radarfobj.data
-                nandet = detfobj.data
                 nanradar[totmask] = np.nan
-                nandet[totmask] = np.nan 
                 convradar = convolve2d(nanradar, kernel, mode='same')
-                convdet = convolve2d(nandet, kernel, mode='same')
-                detrmse.append(np.sqrt(np.nanmean((convradar - convdet)**2 / 
-                                       (0.5*(convradar + convdet))**2)))
-                fss = FSS(1, 21, nanradar, nandet, python_core = True)
-                fsslist.append(fss)
-        # End hourlist 
-    # End timelist
+                if args.ana == 'det':
+                    # Det run 
+                    detfobj = load_det(DATA_DIR, date, ddhhmmss(timedelta(hours=h)))
+                    
+                    radarmean.append(np.mean(radarfobj.data[~totmask]))
+                    detmean.append(np.mean(detfobj.data[~totmask]))
+                    
+                    # Upscaled RMSE
+                    nandet = detfobj.data
+                    nandet[totmask] = np.nan 
+                    convdet = convolve2d(nandet, kernel, mode='same')
+                    detradarmean = 0.5*(convradar + convdet)
+                    detrmse.append(np.sqrt(np.nanmean(((convradar - convdet)**2 / 
+                                        (detradarmean)**2)[detradarmean >= 0.1])))
+                    fss = FSS(1, 21, nanradar, nandet, python_core = True)
+                    fsslist.append(fss)
+                
+                if args.ana == 'ens':
+                    ensfobjlist = load_ens(DATA_DIR, date, 
+                                        ddhhmmss(timedelta(hours=h)))
+                    convfieldlist = []
+                    for ensfobj in ensfobjlist:
+                        nanfield = ensfobj.data
+                        nanfield[totmask] = np.nan
+                        convfield = convolve2d(nanfield, kernel, mode='same')
+                        convfieldlist.append(convfield)
+                    convfieldlist = np.array(convfieldlist)
+                    meanfield = np.mean(convfieldlist, axis = 0)
+                    spreadlist.append(np.nanmean((np.std(convfieldlist, axis = 0)/
+                                                meanfield)[meanfield >= 0.1]))
+                    ensradarmean = 0.5*(convradar + meanfield)
+                    rmselist.append(np.sqrt(np.nanmean(((convradar - meanfield)**2 / 
+                                        (ensradarmean)**2)[ensradarmean >= 0.1])))
+                    
+                    
+                    
+            # End hourlist 
+        # End timelist
+        
+        # Bin the data 
+        hour_bins = np.arange(0.5, 25.5, 1)
+        if args.ana == 'det':
+            radarmean = binned_statistic(hourlist, radarmean, 
+                                            bins = hour_bins)[0]
+            detmean = binned_statistic(hourlist, detmean, 
+                                            bins = hour_bins)[0]
+            detrmse = binned_statistic(hourlist, detrmse, 
+                                            bins = hour_bins)[0]
+            meanfss = binned_statistic(hourlist, fsslist, 
+                                            bins = hour_bins)[0]
+            np.save(savefn, (radarmean, detmean, detrmse, meanfss))
+
+        if args.ana == 'ens':
+            ensspread = binned_statistic(hourlist, spreadlist, 
+                                            bins = hour_bins)[0]
+            ensrmse = binned_statistic(hourlist, rmselist, 
+                                            bins = hour_bins)[0]
+            np.save(savefn, (ensspread, ensrmse))
+
+
     
-    # Bin the data 
-    hour_bins = np.arange(0.5, 25.5, 1)
-    radarmean = binned_statistic(hourlist, radarmean, 
-                                    bins = hour_bins)[0]
-    detmean = binned_statistic(hourlist, detmean, 
-                                    bins = hour_bins)[0]
-    detrmse = binned_statistic(hourlist, detrmse, 
-                                    bins = hour_bins)[0]
-    meanfss = binned_statistic(hourlist, fsslist, 
-                                    bins = hour_bins)[0]
+    if args.ana == 'det':
+
+        # Plot
+        axarr[0].plot(range(radarmean.shape[0]), radarmean, c = 'k', 
+                    linewidth = 2)
+        axarr[0].plot(range(radarmean.shape[0]), detmean, c = cdict[expid], 
+                    linewidth = 2,
+                    label = expid)
+        
+        axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid], 
+                     linewidth = 2)
+        axarr[1].plot(range(radarmean.shape[0]), meanfss, c = cdict[expid], 
+                    linewidth = 2, linestyle = '--')
+    if args.ana == 'ens':
+
+        axarr[0].plot(range(ensspread.shape[0]), ensspread, c = cdict[expid], 
+                    linewidth = 2, linestyle = '--')
+        axarr[0].plot(range(ensspread.shape[0]), ensrmse, c = cdict[expid], 
+                    linewidth = 2, label = expid)
     
-    # Plot
-    axarr[0].plot(range(radarmean.shape[0]), radarmean, c = 'k', linewidth = 2)
-    axarr[0].plot(range(radarmean.shape[0]), detmean, c = cdict[expid], 
-                  linewidth = 2,
-                  label = expid)
-    axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid], 
-                  linewidth = 2)
-    axarr[1].plot(range(radarmean.shape[0]), meanfss, c = cdict[expid], 
-                  linewidth = 2, linestyle = '--')
+    
 
 # End expid loop
 # Finish the plots
-
-axarr[0].set_xlabel('time [UTC/h]')
-axarr[1].set_xlabel('time [UTC/h]')
-axarr[0].set_label('[mm/h]')
-axarr[1].set_label('FSS')
-axarr[0].set_title('domain mean precipitation')
-axarr[1].set_title('FSS n = ' + str(n*2.8) + 'km')
-axarr[0].legend(loc = 0, fontsize = 6)
-plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-
+if args.ana == 'det':
+    axarr[0].set_xlabel('time [UTC/h]')
+    axarr[1].set_xlabel('time [UTC/h]')
+    axarr[0].set_label('[mm/h]')
+    axarr[1].set_label('FSS')
+    axarr[0].set_title('domain mean precipitation')
+    axarr[1].set_title('FSS n = ' + str(n*2.8) + 'km')
+    axarr[0].legend(loc = 0, fontsize = 6)
+    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+if args.ana == 'ens':
+    axarr[0].set_xlabel('time [UTC/h]')
+    
+    
+    
 plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 fig.suptitle(expid_str[:-1] + '  ' + plotstr)
