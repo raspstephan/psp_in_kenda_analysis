@@ -46,12 +46,25 @@ else:
     timelist = make_timelist(tstart, tend, tint)
 
 # Settings
-radardir = '/e/uwork/extsrasp/radolan/'
+# General settings
+if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
+    plotdir = '/e/uwork/extsrasp/plots/'
+    datadir = '/e/uwork/extsrasp/cosmo_letkf/data/'
+    radardir = '/e/uwork/extsrasp/radolan/'
+    savedir_base = '/e/uwork/extsrasp/save/'
+elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
+    datadir = '/home/cosmo/stephan.rasp/dwd_data/data/'
+    radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
+    plotdir = '/home/s/S.Rasp/dwd_work/plots/'
+    savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
+else: 
+    raise Exception('Working directory not recognized:' + os.getcwd())
+
 radarpref = 'raa01-rw_10000-'
 radarsufx = '-dwd---bin.nc'
 precsuf = '_prec'
 gribpref = 'lff'
-nens = 40
+nens = 2
 
 cdict = {'radar':'k',
         'REF':'navy',
@@ -98,7 +111,7 @@ for ie, expid in enumerate(args.expid):
     expid_str += expid + '_'
     
     # Check if saved data is available
-    savedir = '/e/uwork/extsrasp/save/' + expid + '/verif_ana_prec/'
+    savedir = savedir_base + expid + '/verif_ana_prec/'
     if not os.path.exists(savedir): os.makedirs(savedir)
     savefn = savedir + plotstr + '.npy'
     print 'Try to load pre-saved data:', savefn
@@ -123,7 +136,7 @@ for ie, expid in enumerate(args.expid):
             date_store = yyyymmddhhmmss(t - timedelta(hours = t.hour % 3))
 
             # Directory where lff*_prec files are stored
-            DATA_DIR = ('/e/uwork/extsrasp/cosmo_letkf/data/' + expid +
+            DATA_DIR = (datadir + expid +
                         '/' + date_store + '/')
 
             # Load relevant files
@@ -191,7 +204,7 @@ axarr[1].set_title('det rmse (solid) and ens spread (dashed)')
 axarr[0].legend(loc = 0, fontsize = 6)
 plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 
-plotdir = '/e/uwork/extsrasp/plots/' + expid_str[:-1] + '/verif_ana_prec/'
+plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 fig.suptitle(expid_str[:-1] + '  ' + plotstr)
 print 'Save figure:', plotdir + plotstr
