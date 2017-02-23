@@ -16,6 +16,22 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 
+
+# General settings
+if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
+    plotdir = '/e/uwork/extsrasp/plots/'
+    datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'
+    radardir = '/e/uwork/extsrasp/radolan/'
+    savedir_base = '/e/uwork/extsrasp/save/'
+elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
+    datadir = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
+    radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
+    plotdir = '/home/s/S.Rasp/dwd_work/plots/'
+    savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
+else: 
+    raise Exception('Working directory not recognized:' + os.getcwd())
+
+
 # Define loading functions
 def load_det(expid, date, t):
     topdir = datadir + expid + '/' + date + '/'
@@ -39,6 +55,8 @@ parser.add_argument('--date_inc', metavar = 'date_inc', type=int,
                     help = 'Time increment between forecasts (h)')
 parser.add_argument('--hint', metavar = 'hint', type=int, default =24,
                     help = 'Maximum forecast lead time')
+parser.add_argument('--ana', metavar = 'ana', type=str,
+                    help = 'Type of analysis to be done [di]')
 args = parser.parse_args()
 
 # Config for experiment
@@ -63,16 +81,22 @@ else:
     timelist = make_timelist(tstart, tend, tint)
 
 
-
 expid_str = ''
 for ie, expid in enumerate(args.expid):
     print 'expid = ', expid
     expid_str += expid + '_'
-    DATA_DIR='/e/uwork/extsrasp/cosmo_letkf/data_forecast/' + expid
+    DATA_DIR = datadir + expid
+    
+    if args.ana == 'di':
+        radarmean = []
+        detmean = []
+        hourlist =[]
     
     for t in timelist:
         print t
         for h in range(1, hint+1):
+            hourlist.append(h)
+            # Load data 
             
         
     
