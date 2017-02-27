@@ -124,7 +124,8 @@ n = 21
 kernel = np.ones((n,n))/float((n*n))
 
 # Set up figure
-fig, axarr = plt.subplots(1, 2, figsize = (10, 6))
+fig1, ax1 = plt.subplots(1, 1, figsize = (6, 4))
+fig2, ax2 = plt.subplots(1, 1, figsize = (6, 4))
 
 expid_str = ''
 for ie, expid in enumerate(args.expid):
@@ -232,16 +233,17 @@ for ie, expid in enumerate(args.expid):
     if args.ana == 'det':
 
         # Plot
-        axarr[0].plot(range(radarmean.shape[0]), radarmean, c = 'k', 
-                    linewidth = 2)
-        axarr[0].plot(range(radarmean.shape[0]), detmean, c = cdict[expid], 
+        if ie == 0:
+            ax1.plot(range(radarmean.shape[0]), radarmean, c = 'k', 
+                        linewidth = 2, label = 'Radar')
+        ax1.plot(range(radarmean.shape[0]), detmean, c = cdict[expid], 
                     linewidth = 2,
                     label = expid)
         
-        axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid], 
-                     linewidth = 2)
-        axarr[1].plot(range(radarmean.shape[0]), meanfss, c = cdict[expid], 
-                    linewidth = 2, linestyle = '--')
+        #axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid], 
+                     #linewidth = 2)
+        ax2.plot(range(radarmean.shape[0]), meanfss, c = cdict[expid], 
+                    linewidth = 2, label = expid)
     if args.ana == 'ens':
 
         axarr[0].plot(range(ensspread.shape[0]), ensspread, c = cdict[expid], 
@@ -254,14 +256,22 @@ for ie, expid in enumerate(args.expid):
 # End expid loop
 # Finish the plots
 if args.ana == 'det':
-    axarr[0].set_xlabel('time [UTC/h]')
-    axarr[1].set_xlabel('time [UTC/h]')
-    axarr[0].set_label('[mm/h]')
-    axarr[1].set_label('FSS')
-    axarr[0].set_title('domain mean precipitation')
-    axarr[1].set_title('FSS n = ' + str(n*2.8) + 'km')
-    axarr[0].legend(loc = 0, fontsize = 6)
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+    ax1.set_ylabel('mean hourly precipitation [mm/h]')
+    ax2.set_ylabel('FSS [Neighborhood size 58.8km]')
+    for ax in [ax1, ax2]:
+        plt.sca(ax)
+        ax.set_xlabel('Time [UTC and lead time in h]')
+        ax.legend(loc = 0, fontsize = 8, frameon = False)
+        ymax = np.ceil(ax.get_ylim()[1]*10)/10.
+        ax.set_ylim(0, ymax)
+        ax.spines['right'].set_visible(False)
+        ax.spines['top'].set_visible(False)
+        ax.spines['left'].set_position(('outward', 10))
+        ax.spines['bottom'].set_position(('outward', 10))
+        ax.set_xticks([0,6,12,18,24])
+        ax.set_xlim(0, 24)
+        ax.set_title('Deterministic forecasts ' + args.date_start)
+        plt.tight_layout()
 if args.ana == 'ens':
     axarr[0].set_xlabel('time [UTC/h]')
     
@@ -269,9 +279,11 @@ if args.ana == 'ens':
     
 plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
-fig.suptitle(expid_str[:-1] + '  ' + plotstr)
-print 'Save figure:', plotdir + plotstr
-fig.savefig(plotdir + plotstr, dpi = 300)
+
+#print 'Save figure:', plotdir + plotstr + '.pdf'
+fig1.savefig(plotdir + 'diprec_' + plotstr + '.pdf', format = 'pdf')
+fig2.savefig(plotdir + 'fss_' + plotstr + '.pdf', format = 'pdf')
+
 plt.close('all')
 
             
