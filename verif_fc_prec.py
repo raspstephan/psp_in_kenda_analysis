@@ -237,7 +237,7 @@ for ie, expid in enumerate(args.expid):
             ax1.plot(range(radarmean.shape[0]), radarmean, c = 'k', 
                         linewidth = 2, label = 'Radar')
         ax1.plot(range(radarmean.shape[0]), detmean, c = cdict[expid], 
-                    linewidth = 2,
+                    linewidth = 1.5,
                     label = expid)
         
         #axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid], 
