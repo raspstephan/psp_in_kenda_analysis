@@ -102,11 +102,11 @@ cdict = {'radar':'k',
              'REF':'navy',
              'REF_TL500':'darkgreen',
              'PSP_TL500':'orange',
-            'DA_REF':'blue',
+            'DA_REF':'navy',
             'DA_REF_ens':'blue',
             'DA_REF_TL500':'cyan',
             'DA_PSP_TL500':'red',
-            'DA_PSPv2_TL500':'magenta',
+            'DA_PSPv2_TL500':'fuchsia',
             'DA_PSPv2_TL500_ens':'magenta',
             'DA_PSP':'maroon',
              }
@@ -235,9 +235,9 @@ for ie, expid in enumerate(args.expid):
         # Plot
         if ie == 0:
             ax1.plot(range(radarmean.shape[0]), radarmean, c = 'k', 
-                        linewidth = 2, label = 'Radar')
+                        linewidth = 3, label = 'Radar')
         ax1.plot(range(radarmean.shape[0]), detmean, c = cdict[expid], 
-                    linewidth = 1.5,
+                    linewidth = 2,
                     label = expid)
         
         #axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid], 

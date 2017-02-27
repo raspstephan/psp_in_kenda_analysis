@@ -15,6 +15,7 @@ from scipy.stats import binned_statistic
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
+from matplotlib import gridspec
 
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
@@ -60,12 +61,20 @@ cdict = {'radar':'k',
              'REF':'navy',
              'REF_TL500':'darkgreen',
              'PSP_TL500':'orange',
-            'DA_REF':'blue',
+            'DA_REF':'navy',
             'DA_REF_TL500':'cyan',
             'DA_PSP_TL500':'red',
-            'DA_PSPv2_TL500':'magenta',
+            'DA_PSPv2_TL500':'fuchsia',
             'DA_PSP':'maroon',
              }
+
+if args.obs in ['TEMP', 'AIREP']:
+    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' + 
+               args.date_stop + '_' + str(args.ver_int_start) + '_' + 
+               str(args.ver_int_stop))
+if args.obs == 'SYNOP':
+    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' + 
+               args.date_stop)
 
 
 # Loop over time
@@ -83,13 +92,20 @@ if args.obs == 'SYNOP':
     unitdict = {'T2M': 'K', 'RH2M': '%', 'PS': 'Pa'}
 
 if args.obs in ['TEMP', 'AIREP']:
-    fig, axarr = plt.subplots(1, 2, figsize = (10, 5))
+    #fig1, axarr1 = plt.subplots(1, 2, figsize = (5, 7))
+    fig1 = plt.figure(figsize = (5,5))
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4]) 
+    axarr1 = [plt.subplot(gs[0]), plt.subplot(gs[1])]
+    fig2 = plt.figure(figsize = (5,5))
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4]) 
+    axarr2 = [plt.subplot(gs[0]), plt.subplot(gs[1])]
+    #fig2, axarr2 = plt.subplots(1, 2, figsize = (5, 7))
     unitdict = {'T': 'K', 'RH': '%'}
     rmselimdict = {'T': (0,3), 'RH': (0, 40)}
-    biaslimdict = {'T': (-3,3), 'RH': (-15,15)}
+    biaslimdict = {'T': (-1.5,1.5), 'RH': (-15,15)}
 
     if args.obs == 'TEMP':
-        bin_edges = np.arange(0, 1025, 25) * 100. # Pa
+        bin_edges = np.arange(200, 1025, 25) * 100. # Pa
         meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
     if args.obs == 'AIREP':
         bin_edges = np.arange(0, 12500, 250) # m
@@ -103,16 +119,15 @@ for ie, expid in enumerate(args.expid):
     DATA_DIR=datadir + expid
     
     
-    # Check if saved data is available ATTENTION NOT IMPLEMENTED
-    #savedir = '/e/uwork/extsrasp/save/' + expid + '/verif_ana/'
-    #if not os.path.exists(savedir): os.makedirs(savedir)
-    #savefn = savedir + plotstr + '.npy'
-    #print 'Try to load pre-saved data:', savefn
-    #if os.path.exists(savefn):
-        #print 'Found pre-saved data.'
-        #mean_spread, mean_bias, rmse = np.load(savefn)
-    #else:
-    if True:
+    # Check if saved data is available
+    savedir = savedir_base + expid + '/verif_fc/'
+    if not os.path.exists(savedir): os.makedirs(savedir)
+    savefn = savedir + plotstr + '.npy'
+    print 'Try to load pre-saved data:', savefn
+    if os.path.exists(savefn):
+        print 'Found pre-saved data.'
+        mean_bias, rmse, count = np.load(savefn)
+    else:
         obs_time = []   # in mins relative to obs_date
         obs = []
         verif = []
@@ -154,40 +169,56 @@ for ie, expid in enumerate(args.expid):
                 raise Exception
         # End timeloop
     
+        # Save data 
+        if args.obs in ['TEMP', 'AIREP']: 
+            print 'Total number of observations:', len(obs)
+
+            # Height bin the data
+            bias = np.array(bias)
+            obs_lev = np.array(obs_lev)
+            obs_time = np.array(obs_time)
+            obs_lev = np.array(obs_lev)
+            mask = (obs_time >= args.ver_int_start*60.) & (obs_time <= 
+                                                        args.ver_int_stop*60.)
+            print 'Number of verif-observations:', np.sum(mask)
+            count = binned_statistic(obs_lev[mask], bias[mask], 
+                                        bins = bin_edges, 
+                                        statistic = 'count')[0]
+            
+            mean_bias = binned_statistic(obs_lev[mask], bias[mask], 
+                                        bins = bin_edges)[0]
+            rmse = np.sqrt(binned_statistic(obs_lev[mask], np.array(bias[mask])**2, 
+                                            bins = bin_edges)[0])
+            if args.var == 'RH':   # convert to percent
+                mean_bias *= 100.
+                rmse *= 100.
+            np.save(savefn, (mean_bias, rmse, count))
+            
+        if args.obs == 'SYNOP':
+            print 'Total number of observations:', len(obs)
+
+            bin_edges = np.arange(0, (args.hint+1)*60, 60)   # Hourly bins
+            time_hist = np.histogram(obs_time, bins = bin_edges)
+            mean_bias = binned_statistic(obs_time, bias, bins = bin_edges)[0]
+            rmse = np.sqrt(binned_statistic(obs_time, np.array(bias)**2, 
+                                            bins = bin_edges)[0])
+            np.save(savefn, (mean_bias, rmse, None))
+    
+    
     # Plot data for each expid 
 
     if args.obs in ['TEMP', 'AIREP']: 
-        print 'Total number of observations:', len(obs)
-
-        # Height bin the data
-        bias = np.array(bias)
-        obs_lev = np.array(obs_lev)
-        obs_time = np.array(obs_time)
-        obs_lev = np.array(obs_lev)
-        mask = (obs_time >= args.ver_int_start*60.) & (obs_time <= 
-                                                    args.ver_int_stop*60.)
-        print 'Number of verif-observations:', np.sum(mask)
-
-        mean_bias = binned_statistic(obs_lev[mask], bias[mask], 
-                                     bins = bin_edges)[0]
-        rmse = np.sqrt(binned_statistic(obs_lev[mask], np.array(bias[mask])**2, 
-                                        bins = bin_edges)[0])
-        if args.var == 'RH':   # convert to percent
-            mean_bias *= 100.
-            rmse *= 100.
         # Plot 
-        axarr[0].plot(rmse, meanlev, c = cdict[expid], linewidth = 2)
-        axarr[1].plot(mean_bias, meanlev, c = cdict[expid], linewidth = 2,
+        axarr1[0].barh(meanlev, count, height = 25, color = 'gray', 
+                       linewidth = 0)
+        axarr2[0].barh(meanlev, count, height = 25, color = 'gray', 
+                       linewidth = 0)
+        axarr1[1].plot(rmse, meanlev, c = cdict[expid], linewidth = 2,
+                 label = expid)
+        axarr2[1].plot(mean_bias, meanlev, c = cdict[expid], linewidth = 2,
                       label = expid)
         
     if args.obs == 'SYNOP':
-        print 'Total number of observations:', len(obs)
-
-        bin_edges = np.arange(0, (args.hint+1)*60, 60)   # Hourly bins
-        time_hist = np.histogram(obs_time, bins = bin_edges)
-        mean_bias = binned_statistic(obs_time, bias, bins = bin_edges)[0]
-        rmse = np.sqrt(binned_statistic(obs_time, np.array(bias)**2, 
-                                        bins = bin_edges)[0])
         time_plot = bin_edges[:-1] / 60
         ax.plot(time_plot, mean_bias, linewidth = 2, c = cdict[expid], 
                 label = expid, linestyle = ':')
@@ -198,29 +229,59 @@ for ie, expid in enumerate(args.expid):
 plotdir = plotdir + expid_str[:-1] + '/verif_fof/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 if args.obs in ['TEMP', 'AIREP']:
-    axarr[0].set_xlim(rmselimdict[args.var])
-    axarr[0].set_ylim(0,np.max(meanlev))
-    axarr[0].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
-    axarr[0].set_ylabel('Pressure [hPa]')
-    axarr[0].set_title('RMSE ' + args.var)
-    axarr[1].axvline(0 ,c = 'gray')
-    axarr[1].set_xlim(biaslimdict[args.var])
-    axarr[1].set_ylim(0,np.max(meanlev))
-    axarr[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
-    axarr[1].set_ylabel('Pressure [hPa]')
-    axarr[1].set_title('Bias ' + args.var)
-    axarr[1].legend(loc = 0, fontsize = 8)
-    if args.obs == 'TEMP':
-        axarr[0].invert_yaxis()
-        axarr[1].invert_yaxis()
-    plt.tight_layout(rect=[0, 0.0, 1, 0.95])
     
-    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' + 
-               args.date_stop + '_' + str(args.ver_int_start) + '_' + 
-               str(args.ver_int_stop))
-    fig.suptitle(plotstr)
-    print 'Plotting:', plotdir + plotstr
-    fig.savefig(plotdir + plotstr, dpi = 200)
+    
+    axarr1[1].set_xlim(rmselimdict[args.var])
+    axarr1[1].set_ylim(0,np.max(meanlev))
+    axarr1[1].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
+    axarr1[0].set_ylabel('Pressure [hPa]')
+    #axarr1[1].set_title('RMSE ' + args.var)
+    axarr1[1].legend(loc = 0, fontsize = 8, frameon = False)
+    
+    axarr2[1].axvline(0 ,c = 'lightgray', zorder = 0.1)
+    axarr2[1].set_xlim(biaslimdict[args.var])
+    axarr2[1].set_ylim(0,np.max(meanlev))
+    axarr2[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
+    axarr2[0].set_ylabel('Pressure [hPa]')
+    #axarr2[1].set_title('Bias ' + args.var)
+    axarr2[1].legend(loc = 0, fontsize = 8, frameon = False)
+    
+    axarr1[0].set_xlabel('# Obs')
+    axarr2[0].set_xlabel('# Obs')
+    #axarr1[1].set_title('RMSE')
+    #axarr2[1].set_title('BIAS')
+    
+    for axarr in [axarr1, axarr2]:
+        plt.sca(axarr[0])
+        axarr[0].spines['top'].set_visible(False)
+        axarr[0].spines['right'].set_visible(False)
+        axarr[1].spines['right'].set_visible(False)
+        axarr[1].spines['left'].set_visible(False)
+        axarr[1].spines['top'].set_visible(False)
+        axarr[0].spines['left'].set_position(('outward', 10))
+        axarr[0].spines['bottom'].set_position(('outward', 10))
+        axarr[1].spines['bottom'].set_position(('outward', 10))
+        axarr[1].yaxis.set_ticks([])
+        
+        plt.tight_layout(rect=[0, 0.0, 1, 0.97])
+    
+    if args.obs == 'TEMP':
+        axarr1[0].set_ylim(200, 1000)
+        axarr1[1].set_ylim(200, 1000)
+        axarr2[0].set_ylim(200, 1000)
+        axarr2[1].set_ylim(200, 1000)
+        axarr1[0].invert_yaxis()
+        axarr1[1].invert_yaxis()
+        axarr2[0].invert_yaxis()
+        axarr2[1].invert_yaxis()
+        
+    
+    
+    fig1.suptitle(args.obs + ' ' + args.var + ' RMSE', fontsize = 10)
+    fig2.suptitle(args.obs + ' ' + args.var + ' BIAS', fontsize = 10)
+    print 'Plotting:', plotdir + 'rmse_' + plotstr + '.pdf'
+    fig1.savefig(plotdir + 'rmse_' + plotstr + '.pdf', format = 'pdf')
+    fig2.savefig(plotdir + 'bias_' + plotstr + '.pdf', format = 'pdf')
     plt.close('all')
 
 
@@ -229,8 +290,7 @@ if args.obs == 'SYNOP':
     ax.set_ylabel(args.var + ' [' + unitdict[args.var] +  ']' )
     ax.legend(loc = 0, fontsize = 8)
     ax.axhline(y=0, zorder = 0.1, c = 'gray')
-    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' + 
-               args.date_stop)
+
     ax.set_title(plotstr + '\n RMSE (solid), Bias (dotted)')
     plt.tight_layout()
     print 'Plotting:', plotdir + plotstr
