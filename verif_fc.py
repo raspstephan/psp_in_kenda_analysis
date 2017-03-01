@@ -48,7 +48,13 @@ if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
     radardir = '/e/uwork/extsrasp/radolan/'
     savedir_base = '/e/uwork/extsrasp/save/'
 elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
-    datadir = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
+    datadir_cosmo = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
+    datadir_raid = '/home/data/raid_linux/stephan.rasp/dwd_data/data_forecast/'
+    datadirdict = {'DA_REF': datadir_cosmo,
+                   'DA_PSPv2': datadir_raid,
+                   'DA_PSPv2_TL500': datadir_cosmo,
+                   'DA_REF_TL500': datadir_raid,
+                   }
     radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
     plotdir = '/home/s/S.Rasp/dwd_plots/plots/'
     savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
@@ -65,7 +71,7 @@ cdict = {'radar':'k',
             'DA_REF_TL500':'cyan',
             'DA_PSP_TL500':'red',
             'DA_PSPv2_TL500':'fuchsia',
-            'DA_PSP':'maroon',
+            'DA_PSPv2':'maroon',
              }
 
 if args.obs in ['TEMP', 'AIREP']:
@@ -105,10 +111,12 @@ if args.obs in ['TEMP', 'AIREP']:
     biaslimdict = {'T': (-1.5,1.5), 'RH': (-15,15)}
 
     if args.obs == 'TEMP':
-        bin_edges = np.arange(200, 1025, 25) * 100. # Pa
+        binwidth = 25
+        bin_edges = np.arange(200, 1000+binwidth, binwidth) * 100. # Pa
         meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
     if args.obs == 'AIREP':
-        bin_edges = np.arange(0, 12500, 250) # m
+        binwidth = 250
+        bin_edges = np.arange(0, 10000 + binwidth, binwidth) # m
         meanlev = (bin_edges[1:] + bin_edges[:-1])/2.  # m
 
 
@@ -116,7 +124,7 @@ expid_str = ''
 for ie, expid in enumerate(args.expid):
     print 'expid = ', expid
     expid_str += expid + '_'
-    DATA_DIR=datadir + expid
+    DATA_DIR = datadirdict[expid] + expid
     
     
     # Check if saved data is available
@@ -209,9 +217,9 @@ for ie, expid in enumerate(args.expid):
 
     if args.obs in ['TEMP', 'AIREP']: 
         # Plot 
-        axarr1[0].barh(meanlev, count, height = 25, color = 'gray', 
+        axarr1[0].barh(meanlev, count, height = binwidth, color = 'gray', 
                        linewidth = 0)
-        axarr2[0].barh(meanlev, count, height = 25, color = 'gray', 
+        axarr2[0].barh(meanlev, count, height = binwidth, color = 'gray', 
                        linewidth = 0)
         axarr1[1].plot(rmse, meanlev, c = cdict[expid], linewidth = 2,
                  label = expid)
@@ -234,7 +242,6 @@ if args.obs in ['TEMP', 'AIREP']:
     axarr1[1].set_xlim(rmselimdict[args.var])
     axarr1[1].set_ylim(0,np.max(meanlev))
     axarr1[1].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
-    axarr1[0].set_ylabel('Pressure [hPa]')
     #axarr1[1].set_title('RMSE ' + args.var)
     axarr1[1].legend(loc = 0, fontsize = 8, frameon = False)
     
@@ -242,7 +249,6 @@ if args.obs in ['TEMP', 'AIREP']:
     axarr2[1].set_xlim(biaslimdict[args.var])
     axarr2[1].set_ylim(0,np.max(meanlev))
     axarr2[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
-    axarr2[0].set_ylabel('Pressure [hPa]')
     #axarr2[1].set_title('Bias ' + args.var)
     axarr2[1].legend(loc = 0, fontsize = 8, frameon = False)
     
@@ -266,6 +272,8 @@ if args.obs in ['TEMP', 'AIREP']:
         plt.tight_layout(rect=[0, 0.0, 1, 0.97])
     
     if args.obs == 'TEMP':
+        axarr1[0].set_ylabel('Pressure [hPa]')
+        axarr2[0].set_ylabel('Pressure [hPa]')
         axarr1[0].set_ylim(200, 1000)
         axarr1[1].set_ylim(200, 1000)
         axarr2[0].set_ylim(200, 1000)
@@ -274,14 +282,31 @@ if args.obs in ['TEMP', 'AIREP']:
         axarr1[1].invert_yaxis()
         axarr2[0].invert_yaxis()
         axarr2[1].invert_yaxis()
+    if args.obs == 'AIREP':
+        axarr1[0].set_ylabel('Height agu [m]')
+        axarr2[0].set_ylabel('Height agu [m]')
+        axarr1[0].set_ylim(0, 10000)
+        axarr1[1].set_ylim(0, 10000)
+        axarr2[0].set_ylim(0, 10000)
+        axarr2[1].set_ylim(0, 10000)
+        
+    for axarr in [axarr1, axarr2]:
+        plt.sca(axarr[0])
+        plt.tight_layout(rect=[0, 0.0, 1, 0.97])
         
     
     
     fig1.suptitle(args.obs + ' ' + args.var + ' RMSE', fontsize = 10)
     fig2.suptitle(args.obs + ' ' + args.var + ' BIAS', fontsize = 10)
     print 'Plotting:', plotdir + 'rmse_' + plotstr + '.pdf'
-    fig1.savefig(plotdir + 'rmse_' + plotstr + '.pdf', format = 'pdf')
-    fig2.savefig(plotdir + 'bias_' + plotstr + '.pdf', format = 'pdf')
+    #fig1.savefig(plotdir + 'rmse_' + plotstr + '.pdf', format = 'pdf',
+                 #transparent = True)
+    #fig2.savefig(plotdir + 'bias_' + plotstr + '.pdf', format = 'pdf',
+                 #transparent = True)
+    fig1.savefig(plotdir + 'rmse_' + plotstr + '.png', format = 'png',
+                 transparent = True, dpi = 300)
+    fig2.savefig(plotdir + 'bias_' + plotstr + '.png', format = 'png',
+                 transparent = True, dpi = 300)
     plt.close('all')
 
 

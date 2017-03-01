@@ -32,14 +32,35 @@ parser.add_argument('--plotens', metavar = 'plotens', type=str, default = 'False
 args = parser.parse_args()
 
 # General settings
-plotdir = '/e/uwork/extsrasp/plots/'
-datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'# + args.dateid[0]   # TODO Date is hardcoded
+# General settings
+if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
+    plotdir = '/e/uwork/extsrasp/plots/'
+    datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'
+    radardir = '/e/uwork/extsrasp/radolan/'
+    savedir_base = '/e/uwork/extsrasp/save/'
+elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
+    #datadir = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
+    datadir_cosmo = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
+    datadir_raid = '/home/data/raid_linux/stephan.rasp/dwd_data/data_forecast/'
+    datadirdict = {'DA_REF': datadir_cosmo,
+                   'DA_PSPv2': datadir_raid,
+                   'DA_PSPv2_TL500': datadir_cosmo,
+                   'DA_REF_TL500': datadir_raid,
+                   }
+    radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
+    plotdir = '/home/s/S.Rasp/dwd_plots/plots/'
+    savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
+else: 
+    raise Exception('Working directory not recognized:' + os.getcwd())
+
+#plotdir = '/e/uwork/extsrasp/plots/'
+#datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'# + args.dateid[0]   # TODO Date is hardcoded
 precsuf = '_15'
 gribpref = 'lfff'
 nens = 20
 
 
-radardir = '/e/uwork/extsrasp/radolan/'
+#radardir = '/e/uwork/extsrasp/radolan/'
 radarpref = 'raa01-rw_10000-'
 radarsufx = '-dwd---bin.nc'
 
@@ -60,7 +81,7 @@ cmprob = [(1,1,1,1)] + [plt.cm.plasma_r(i) for i in np.linspace(0.1, 1, 19)]
 
 # Define loading functions
 def load_det(expid, t):
-    topdir = datadir + expid + '/' + args.date[0] + '/'
+    topdir = datadirdict[expid] + expid + '/' + args.date[0] + '/'
     gribfn = gribpref + t + precsuf
     detfn = topdir + 'det/' + gribfn
     detfobj = getfobj(detfn, fieldn = 'PREC_PERHOUR')
@@ -132,7 +153,7 @@ def load_ens_probab(expid, t, thresh, upscale = False):
 
 
 def load_det_cape(expid, t):
-    topdir = datadir + expid + '/' + args.date[0] + '/'
+    topdir = datadirdict[expid] + expid + '/' + args.date[0] + '/'
     if expid in ['ref', 'std'] and args.dateid[0] == '20160606_00_12_':
         gribfn = gribpref + t + '_60'
     else:
@@ -356,13 +377,17 @@ for it, t in enumerate(timelist):
         
         for i, fobj in enumerate(plotfobjlist):
             plt.sca(axlist[i])
+            if i == 0:
+                mask = fobj.data > 100
+            else:
+                mask = None
             cf, tmp = ax_contourf(axlist[i], fobj,
                                   Basemap_drawrivers = False, 
                                   npars = 0, nmers = 0, 
                                   colors = colorslist[i], 
                                   pllevels = levelslist[i],
                                   sp_title = titlelist[i],
-                                  extend = 'max')
+                                  extend = 'max', mask = mask)
             if i < 3:
                 cb = fig.colorbar(cf, orientation = 'vertical', 
                                 fraction = 0.05, pad = 0.0)
@@ -370,11 +395,11 @@ for it, t in enumerate(timelist):
         fig.suptitle(titlestr, fontsize = 18)
         
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-        plotdir = '/e/uwork/extsrasp/plots/' + exptag + '/prec_comp/'
-        if not os.path.exists(plotdir): os.makedirs(plotdir)
+        plotdir_new = plotdir + exptag + '/prec_comp/'
+        if not os.path.exists(plotdir_new): os.makedirs(plotdir_new)
         plotstr = args.date[0] + '_' + str(t)
-        print 'Saving as ', plotdir + plotstr
-        plt.savefig(plotdir + plotstr, dpi = 150)
+        print 'Saving as ', plotdir_new + plotstr
+        plt.savefig(plotdir_new + plotstr, dpi = 300)
         plt.close('all')
         
         
@@ -543,7 +568,7 @@ if 'prec_time' in args.plot:
     plt.savefig(plotdir + plotstr, dpi = 150)
     plt.close('all')
     
-    savedir = '/e/uwork/extsrasp/save/' + exptag + '/prec_time/'
+    savedir = savedir + exptag + '/prec_time/'
     if not os.path.exists(savedir): os.makedirs(savedir)
 
     savefn = savedir + plotstr

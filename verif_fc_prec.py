@@ -19,20 +19,8 @@ import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
 from cosmo_utils.scores.probab import FSS
 
+from config import *   # Import config file
 
-# General settings
-if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
-    plotdir = '/e/uwork/extsrasp/plots/'
-    datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'
-    radardir = '/e/uwork/extsrasp/radolan/'
-    savedir_base = '/e/uwork/extsrasp/save/'
-elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
-    datadir = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
-    radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
-    plotdir = '/home/s/S.Rasp/dwd_plots/plots/'
-    savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
-else: 
-    raise Exception('Working directory not recognized:' + os.getcwd())
 
 radarpref = 'raa01-rw_10000-'
 radarsufx = '-dwd---bin.nc'
@@ -97,19 +85,6 @@ args = parser.parse_args()
 plotstr = (args.ana + '_' + args.date_start + '_' + 
            args.date_stop)
 
-# Config for experiment
-cdict = {'radar':'k',
-             'REF':'navy',
-             'REF_TL500':'darkgreen',
-             'PSP_TL500':'orange',
-            'DA_REF':'navy',
-            'DA_REF_ens':'blue',
-            'DA_REF_TL500':'cyan',
-            'DA_PSP_TL500':'red',
-            'DA_PSPv2_TL500':'fuchsia',
-            'DA_PSPv2_TL500_ens':'magenta',
-            'DA_PSP':'maroon',
-             }
 
 # Loop over time
 tstart = yyyymmddhhmmss_strtotime(args.date_start)
@@ -125,13 +100,14 @@ kernel = np.ones((n,n))/float((n*n))
 
 # Set up figure
 fig1, ax1 = plt.subplots(1, 1, figsize = (6, 4))
-fig2, ax2 = plt.subplots(1, 1, figsize = (6, 4))
+if args.ana == 'det':
+    fig2, ax2 = plt.subplots(1, 1, figsize = (6, 4))
 
 expid_str = ''
 for ie, expid in enumerate(args.expid):
     print 'expid = ', expid
     expid_str += expid + '_'
-    DATA_DIR = datadir + expid
+    DATA_DIR = datadirdict[expid] + expid
     
     # Check if saved data is available
     savedir = savedir_base + expid + '/verif_fc_prec/'
@@ -245,10 +221,9 @@ for ie, expid in enumerate(args.expid):
         ax2.plot(range(radarmean.shape[0]), meanfss, c = cdict[expid], 
                     linewidth = 2, label = expid)
     if args.ana == 'ens':
-
-        axarr[0].plot(range(ensspread.shape[0]), ensspread, c = cdict[expid], 
+        ax1.plot(range(ensspread.shape[0]), ensspread, c = cdict[expid], 
                     linewidth = 2, linestyle = '--')
-        axarr[0].plot(range(ensspread.shape[0]), ensrmse, c = cdict[expid], 
+        ax1.plot(range(ensspread.shape[0]), ensrmse, c = cdict[expid], 
                     linewidth = 2, label = expid)
     
     
@@ -273,17 +248,31 @@ if args.ana == 'det':
         ax.set_title('Deterministic forecasts ' + args.date_start)
         plt.tight_layout()
 if args.ana == 'ens':
-    axarr[0].set_xlabel('time [UTC/h]')
+    ax1.set_xlabel('Time [UTC/h]')
+    ax1.set_ylabel('Normalized spread / skill at 58.8km scale')
+    ax1.spines['right'].set_visible(False)
+    ax1.spines['top'].set_visible(False)
+    ax1.spines['left'].set_position(('outward', 10))
+    ax1.spines['bottom'].set_position(('outward', 10))
+    ax1.set_xticks([0,6,12,18,24])
+    ax1.set_xlim(0, 24)
+    ax1.legend(loc = 0, fontsize = 8, frameon = False)
+    ax1.set_title('Normalized ensemble spread (dashed) and skill (solid)')
+    plt.tight_layout()
     
     
     
 plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 
-#print 'Save figure:', plotdir + plotstr + '.pdf'
-fig1.savefig(plotdir + 'diprec_' + plotstr + '.pdf', format = 'pdf')
-fig2.savefig(plotdir + 'fss_' + plotstr + '.pdf', format = 'pdf')
-
+print 'Save figure in :', plotdir
+#fig1.savefig(plotdir + 'diprec_' + plotstr + '.pdf', format = 'pdf')
+#fig2.savefig(plotdir + 'fss_' + plotstr + '.pdf', format = 'pdf')
+fig1.savefig(plotdir + 'diprec_' + plotstr + '.png', dpi = 300, 
+             transparent = True)
+if args.ana == 'det':
+    fig2.savefig(plotdir + 'fss_' + plotstr + '.png', dpi = 300, 
+                transparent = True)
 plt.close('all')
 
             

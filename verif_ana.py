@@ -15,6 +15,8 @@ from cosmo_utils.helpers import yyyymmddhhmmss, yyyymmddhhmmss_strtotime, \
 from datetime import timedelta
 from scipy.stats import binned_statistic
 
+from config import *
+
 # Arguments
 parser = argparse.ArgumentParser(description = 'Script to verify analysis against SYNOP, TEMP and AIREP observations.')
 parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+',
@@ -63,18 +65,6 @@ for t in timelist:
     if t.hour >= args.ver_int_start and t.hour <= args.ver_int_stop:
         new_timelist.append(t)
 timelist = new_timelist
-
-
-cdict = {'radar':'k',
-        'REF':'navy',
-        'REF_TL500':'darkgreen',
-        'PSP_TL500':'maroon',
-        'DA_REF':'blue',
-        'DA_REF_TL500':'cyan',
-        'DA_PSP_TL500':'red',
-        'DA_PSPv2_TL500':'magenta',
-        'DA_PSP':'maroon',
-        }
 
 
 
@@ -132,7 +122,7 @@ for ie, expid in enumerate(args.expid):
             date_store = yyyymmddhhmmss(t - timedelta(hours = t.hour % 3))
 
             # Directory where ekf's and fof's are stored
-            FEED_DIR = ('/e/uwork/extsrasp/cosmo_letkf/feedback/' + expid +
+            FEED_DIR = (feeddir + expid +
                         '/' + date_store + '/')
 
             # Load files
