@@ -63,12 +63,15 @@ def load_ens(datadir, date, t):
     return ensfobjlist
 
 
+    
+
+
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+',
                     help = 'Experiment ID')
 parser.add_argument('--date_start', metavar = 'date_start', type=str,
-                    default = '20160525000000', help = 'Start date for date loop (yyyymmddhhmmss)')
+                    default = ' ', help = 'Start date for date loop (yyyymmddhhmmss)')
 parser.add_argument('--date_stop', metavar = 'date_stop', type=str,
                     default = '20160610000000', 
                     help = 'End date for date loop (yyyymmddhhmmss)')
@@ -210,21 +213,21 @@ for ie, expid in enumerate(args.expid):
 
         # Plot
         if ie == 0:
-            ax1.plot(range(radarmean.shape[0]), radarmean, c = 'k', 
+            ax1.plot(range(1, radarmean.shape[0]+1), radarmean, c = 'k', 
                         linewidth = 3, label = 'Radar')
-        ax1.plot(range(radarmean.shape[0]), detmean, c = cdict[expid], 
+        ax1.plot(range(1, radarmean.shape[0]+1), detmean, c = cdict[expid], 
                     linewidth = 2,
-                    label = expid)
+                    label = strip_expid(expid))
         
         #axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid], 
                      #linewidth = 2)
-        ax2.plot(range(radarmean.shape[0]), meanfss, c = cdict[expid], 
-                    linewidth = 2, label = expid)
+        ax2.plot(range(1, radarmean.shape[0]+1), meanfss, c = cdict[expid], 
+                    linewidth = 2, label = strip_expid(expid))
     if args.ana == 'ens':
-        ax1.plot(range(ensspread.shape[0]), ensspread, c = cdict[expid], 
-                    linewidth = 2, linestyle = '--')
-        ax1.plot(range(ensspread.shape[0]), ensrmse, c = cdict[expid], 
-                    linewidth = 2, label = expid)
+        ax1.plot(range(1, ensspread.shape[0]+1), ensspread, c = cdict[expid], 
+                    linewidth = 2, linestyle = '-', label = strip_expid(expid))
+        #ax1.plot(range(1, ensspread.shape[0]+1), ensrmse, c = cdict[expid], 
+                    #linewidth = 1.5, label = strip_expid(expid))
     
     
 
@@ -249,7 +252,8 @@ if args.ana == 'det':
         plt.tight_layout()
 if args.ana == 'ens':
     ax1.set_xlabel('Time [UTC/h]')
-    ax1.set_ylabel('Normalized spread / skill at 58.8km scale')
+    #ax1.set_ylabel('Normalized spread / RMSE at 58.8km scale')
+    ax1.set_ylabel('Normalized spread at 58.8km scale')
     ax1.spines['right'].set_visible(False)
     ax1.spines['top'].set_visible(False)
     ax1.spines['left'].set_position(('outward', 10))
@@ -257,7 +261,7 @@ if args.ana == 'ens':
     ax1.set_xticks([0,6,12,18,24])
     ax1.set_xlim(0, 24)
     ax1.legend(loc = 0, fontsize = 8, frameon = False)
-    ax1.set_title('Normalized ensemble spread (dashed) and skill (solid)')
+    ax1.set_title('Normalized ensemble spread')
     plt.tight_layout()
     
     

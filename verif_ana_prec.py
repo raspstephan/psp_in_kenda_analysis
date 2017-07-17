@@ -18,6 +18,8 @@ from cosmo_utils.diag import mean_spread_fieldobjlist
 from datetime import timedelta
 from scipy.stats import binned_statistic
 
+from config import *
+
 parser = argparse.ArgumentParser(description = 'Script to verify first guess precipitation forecast from assimilation cycling against radar observations.')
 parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+',
                     help = 'Experiment ID')
@@ -45,20 +47,6 @@ if tstart == tend:
 else:
     timelist = make_timelist(tstart, tend, tint)
 
-# Settings
-# General settings
-if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
-    plotdir = '/e/uwork/extsrasp/plots/'
-    datadir = '/e/uwork/extsrasp/cosmo_letkf/data/'
-    radardir = '/e/uwork/extsrasp/radolan/'
-    savedir_base = '/e/uwork/extsrasp/save/'
-elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
-    datadir = '/home/cosmo/stephan.rasp/dwd_data/data/'
-    radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
-    plotdir = '/home/s/S.Rasp/dwd_work/plots/'
-    savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
-else: 
-    raise Exception('Working directory not recognized:' + os.getcwd())
 
 radarpref = 'raa01-rw_10000-'
 radarsufx = '-dwd---bin.nc'
@@ -66,16 +54,7 @@ precsuf = '_prec'
 gribpref = 'lff'
 nens = 2
 
-cdict = {'radar':'k',
-        'REF':'navy',
-        'REF_TL500':'darkgreen',
-        'PSP_TL500':'maroon',
-        'DA_REF':'blue',
-        'DA_REF_TL500':'cyan',
-        'DA_PSP_TL500':'red',
-        'DA_PSPv2_TL500':'magenta',
-        'DA_PSP':'maroon',
-        }
+
 
 
 # Define loading functions (duplicate from plot_stamps.py)
@@ -136,7 +115,7 @@ for ie, expid in enumerate(args.expid):
             date_store = yyyymmddhhmmss(t - timedelta(hours = t.hour % 3))
 
             # Directory where lff*_prec files are stored
-            DATA_DIR = (datadir + expid +
+            DATA_DIR = (datadirdict2[expid] + expid +
                         '/' + date_store + '/')
 
             # Load relevant files
@@ -195,8 +174,8 @@ if args.composite == 'True':
     axarr[0].set_xlabel('time [UTC/h]')
     axarr[1].set_xlabel('time [UTC/h]')
 else:
-    axarr[0].set_xlabel('time from ' +  yyyymmddhhmmss(tstart)+ ' [h]')
-    axarr[1].set_xlabel('time from ' +  yyyymmddhhmmss(tstart)+ ' [h]')
+    axarr[0].set_xlabel('time from ' +  yyyymmddhhmmss(tstart) + ' [h]')
+    axarr[1].set_xlabel('time from ' +  yyyymmddhhmmss(tstart) + ' [h]')
 axarr[0].set_label('[mm/h]')
 axarr[1].set_label('[mm/h]')
 axarr[0].set_title('domain mean precipitation\n det (solid), ens (dashed)')

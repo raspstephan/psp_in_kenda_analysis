@@ -95,7 +95,7 @@ for ie, expid in enumerate(args.expid):
     
     
     # Check if saved data is available
-    savedir = '/e/uwork/extsrasp/save/' + expid + '/verif_ana/'
+    savedir = savedir_base + expid + '/verif_ana/'
     if not os.path.exists(savedir): os.makedirs(savedir)
     savefn = savedir + plotstr + '.npy'
     if args.delete_save == 'True':
@@ -243,7 +243,7 @@ if args.obs == 'SYNOP':
     ax.legend(loc = 0, fontsize = 6)
     ax.set_title(plotstr + '\n RMSE (solid), Spread (dashed), Bias (dotted)')
     plt.tight_layout()
-    plotdir = '/e/uwork/extsrasp/plots/' + expid_str[:-1] + '/verif_ana/'
+    plotdir = plotdir + expid_str[:-1] + '/verif_ana/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
     print 'Save figure:', plotdir + plotstr
     fig.savefig(plotdir + plotstr, dpi = 300)
@@ -265,7 +265,7 @@ if args.obs == 'TEMP':
     axarr[1].invert_yaxis()
     axarr[1].legend(loc = 0, fontsize = 6)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-    plotdir = '/e/uwork/extsrasp/plots/' + expid_str[:-1] + '/verif_ana/'
+    plotdir = plotdir + expid_str[:-1] + '/verif_ana/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
     fig.suptitle(expid_str + '  ' + plotstr)
     print 'Save figure:', plotdir + plotstr
@@ -286,7 +286,7 @@ if args.obs == 'AIREP':
     axarr[1].set_title('Bias ' + args.var)
     axarr[1].legend(loc = 0, fontsize = 6)
     plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-    plotdir = '/e/uwork/extsrasp/plots/' + expid_str[:-1] + '/verif_ana/'
+    plotdir = plotdir + expid_str[:-1] + '/verif_ana/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
     fig.suptitle(expid_str + '  ' + plotstr)
     print 'Save figure:', plotdir + plotstr

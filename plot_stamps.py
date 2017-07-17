@@ -22,6 +22,8 @@ import os
 from datetime import timedelta
 from scipy.signal import convolve2d
 
+from config import *
+
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+')
@@ -31,27 +33,7 @@ parser.add_argument('--plot', metavar = 'plot', type=str, nargs = '+')
 parser.add_argument('--plotens', metavar = 'plotens', type=str, default = 'False')
 args = parser.parse_args()
 
-# General settings
-# General settings
-if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
-    plotdir = '/e/uwork/extsrasp/plots/'
-    datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'
-    radardir = '/e/uwork/extsrasp/radolan/'
-    savedir_base = '/e/uwork/extsrasp/save/'
-elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
-    #datadir = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
-    datadir_cosmo = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
-    datadir_raid = '/home/data/raid_linux/stephan.rasp/dwd_data/data_forecast/'
-    datadirdict = {'DA_REF': datadir_cosmo,
-                   'DA_PSPv2': datadir_raid,
-                   'DA_PSPv2_TL500': datadir_cosmo,
-                   'DA_REF_TL500': datadir_raid,
-                   }
-    radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
-    plotdir = '/home/s/S.Rasp/dwd_plots/plots/'
-    savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
-else: 
-    raise Exception('Working directory not recognized:' + os.getcwd())
+
 
 #plotdir = '/e/uwork/extsrasp/plots/'
 #datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'# + args.dateid[0]   # TODO Date is hardcoded
@@ -112,7 +94,7 @@ def load_radar_ts(time):
     return radarts
 
 def load_ens(expid, t):
-    topdir = datadir + expid + '/' + args.date[0] + '/'
+    topdir = datadirdict[expid]  + expid + '/' + args.date[0] + '/'
     gribfn = gribpref + t + precsuf
     ensfobjlist = getfobj_ens(topdir, 'sub', mems = nens, gribfn = gribfn, 
                               dir_prefix = 'ens', fieldn = 'PREC_PERHOUR', 
@@ -275,8 +257,8 @@ for it, t in enumerate(timelist):
     # Plot what is to be plotted
     if 'ens_stamps' in args.plot:
         print 'Plotting ens_stamps'
-        plotdirsub = (plotdir + args.dateid[0] + '/' + 
-                      args.date[0] + '/ens_stamps/')
+        plotdirsub = (plotdir + args.expid[0] + '/' + 
+                    args.date[0] + '/ens_stamps/')
         if not os.path.exists(plotdirsub): os.makedirs(plotdirsub)
         
         # Load data
@@ -356,24 +338,29 @@ for it, t in enumerate(timelist):
             exptag += exp + '_'
             detfobjlist.append(load_det(exp, t))
         exptag = exptag[:-1]
-        capefobj = load_det_cape(args.expid[0], t)    
-        taucfobj = load_det_tauc(args.expid[0], t)
+        #capefobj = load_det_cape(args.expid[0], t)    
+        #taucfobj = load_det_tauc(args.expid[0], t)
         radarfobj = load_radar(t)
 
         
-        plotfobjlist = [radarfobj, capefobj, taucfobj] + detfobjlist
-        titlelist = ['radar prec [mm/h]', 'ref det CAPE [J/kg]',
-                     'tau_c [h]']
-        colorslist = [cmPrec, cmcape, cmtauc]
-        levelslist = [levelsPrec, levelscape, levelstauc]
+        #plotfobjlist = [radarfobj, capefobj, taucfobj] + detfobjlist
+        #titlelist = ['radar prec [mm/h]', 'ref det CAPE [J/kg]',
+                     #'tau_c [h]']
+        #colorslist = [cmPrec, cmcape, cmtauc]
+        #levelslist = [levelsPrec, levelscape, levelstauc]
+        plotfobjlist = [radarfobj] + detfobjlist
+        titlelist = ['Radar']
+        colorslist = [cmPrec]
+        levelslist = [levelsPrec]
         for e in args.expid:
-            titlelist.append(e + ' det prec [mm/h]')
+            titlelist.append(strip_expid(e))
             colorslist.append(cmPrec)
             levelslist.append(levelsPrec)
             
         nrows = int(np.ceil(len(plotfobjlist)/3.))
-        fig, axmat = plt.subplots(3, nrows, figsize = (4*nrows, 12))
-        axlist = np.ravel(np.transpose(axmat))
+        fig, axlist = plt.subplots(1, len(plotfobjlist), 
+                                  figsize = (4*len(plotfobjlist), 5))
+        #axlist = np.ravel(np.transpose(axmat))
         
         for i, fobj in enumerate(plotfobjlist):
             plt.sca(axlist[i])
@@ -388,8 +375,8 @@ for it, t in enumerate(timelist):
                                   pllevels = levelslist[i],
                                   sp_title = titlelist[i],
                                   extend = 'max', mask = mask)
-            if i < 3:
-                cb = fig.colorbar(cf, orientation = 'vertical', 
+            if i < 0:
+                cb = fig.colorbar(cf, orientation = 'horizontal', 
                                 fraction = 0.05, pad = 0.0)
         titlestr = args.date[0] + ' + ' + t
         fig.suptitle(titlestr, fontsize = 18)
@@ -399,7 +386,7 @@ for it, t in enumerate(timelist):
         if not os.path.exists(plotdir_new): os.makedirs(plotdir_new)
         plotstr = args.date[0] + '_' + str(t)
         print 'Saving as ', plotdir_new + plotstr
-        plt.savefig(plotdir_new + plotstr, dpi = 300)
+        plt.savefig(plotdir_new + plotstr, dpi = 300, transparent = True)
         plt.close('all')
         
         

@@ -17,6 +17,8 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 
+from config import *
+
 # Arguments
 parser = argparse.ArgumentParser(description = 'Process input')
 parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+',
@@ -41,38 +43,6 @@ parser.add_argument('--hint', metavar = 'hint', type=int, default =24,
                     help = 'Maximum forecast lead time')
 args = parser.parse_args()
 
-# General settings
-if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
-    plotdir = '/e/uwork/extsrasp/plots/'
-    datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'
-    radardir = '/e/uwork/extsrasp/radolan/'
-    savedir_base = '/e/uwork/extsrasp/save/'
-elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
-    datadir_cosmo = '/home/cosmo/stephan.rasp/dwd_data/data_forecast/'
-    datadir_raid = '/home/data/raid_linux/stephan.rasp/dwd_data/data_forecast/'
-    datadirdict = {'DA_REF': datadir_cosmo,
-                   'DA_PSPv2': datadir_raid,
-                   'DA_PSPv2_TL500': datadir_cosmo,
-                   'DA_REF_TL500': datadir_raid,
-                   }
-    radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
-    plotdir = '/home/s/S.Rasp/dwd_plots/plots/'
-    savedir_base = '/home/cosmo/stephan.rasp/dwd_data/save/'
-else: 
-    raise Exception('Working directory not recognized:' + os.getcwd())
-
-
-# Config for experiment
-cdict = {'radar':'k',
-             'REF':'navy',
-             'REF_TL500':'darkgreen',
-             'PSP_TL500':'orange',
-            'DA_REF':'navy',
-            'DA_REF_TL500':'cyan',
-            'DA_PSP_TL500':'red',
-            'DA_PSPv2_TL500':'fuchsia',
-            'DA_PSPv2':'maroon',
-             }
 
 if args.obs in ['TEMP', 'AIREP']:
     plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' + 
@@ -111,7 +81,7 @@ if args.obs in ['TEMP', 'AIREP']:
     biaslimdict = {'T': (-1.5,1.5), 'RH': (-15,15)}
 
     if args.obs == 'TEMP':
-        binwidth = 25
+        binwidth = 50
         bin_edges = np.arange(200, 1000+binwidth, binwidth) * 100. # Pa
         meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
     if args.obs == 'AIREP':
@@ -222,14 +192,14 @@ for ie, expid in enumerate(args.expid):
         axarr2[0].barh(meanlev, count, height = binwidth, color = 'gray', 
                        linewidth = 0)
         axarr1[1].plot(rmse, meanlev, c = cdict[expid], linewidth = 2,
-                 label = expid)
+                 label = strip_expid(expid))
         axarr2[1].plot(mean_bias, meanlev, c = cdict[expid], linewidth = 2,
-                      label = expid)
+                      label = strip_expid(expid))
         
     if args.obs == 'SYNOP':
         time_plot = bin_edges[:-1] / 60
         ax.plot(time_plot, mean_bias, linewidth = 2, c = cdict[expid], 
-                label = expid, linestyle = ':')
+                label = strip_expid(expid), linestyle = ':')
         ax.plot(time_plot, rmse, linewidth = 2, c = cdict[expid], 
                 linestyle = '-')
         
