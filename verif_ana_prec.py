@@ -187,7 +187,7 @@ plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 fig.suptitle(expid_str[:-1] + '  ' + plotstr)
 print 'Save figure:', plotdir + plotstr
-fig.savefig(plotdir + plotstr, dpi = 300)
+fig.savefig(plotdir + plotstr + '.pdf')
 plt.close('all')
 
 

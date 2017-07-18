@@ -386,7 +386,7 @@ for it, t in enumerate(timelist):
         if not os.path.exists(plotdir_new): os.makedirs(plotdir_new)
         plotstr = args.date[0] + '_' + str(t)
         print 'Saving as ', plotdir_new + plotstr
-        plt.savefig(plotdir_new + plotstr, dpi = 300, transparent = True)
+        plt.savefig(plotdir_new + plotstr + '.pdf')
         plt.close('all')
         
         

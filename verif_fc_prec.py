@@ -225,9 +225,9 @@ for ie, expid in enumerate(args.expid):
                     linewidth = 2, label = strip_expid(expid))
     if args.ana == 'ens':
         ax1.plot(range(1, ensspread.shape[0]+1), ensspread, c = cdict[expid], 
-                    linewidth = 2, linestyle = '-', label = strip_expid(expid))
-        #ax1.plot(range(1, ensspread.shape[0]+1), ensrmse, c = cdict[expid], 
-                    #linewidth = 1.5, label = strip_expid(expid))
+                    linewidth = 2, linestyle = '--')
+        ax1.plot(range(1, ensspread.shape[0]+1), ensrmse, c = cdict[expid],
+                 linewidth = 1.5, label = strip_expid(expid))
     
     
 
@@ -261,7 +261,7 @@ if args.ana == 'ens':
     ax1.set_xticks([0,6,12,18,24])
     ax1.set_xlim(0, 24)
     ax1.legend(loc = 0, fontsize = 8, frameon = False)
-    ax1.set_title('Normalized ensemble spread')
+    ax1.set_title('Normalized ensemble spread (--) and RMSE (-)')
     plt.tight_layout()
     
     
@@ -272,11 +272,9 @@ if not os.path.exists(plotdir): os.makedirs(plotdir)
 print 'Save figure in :', plotdir
 #fig1.savefig(plotdir + 'diprec_' + plotstr + '.pdf', format = 'pdf')
 #fig2.savefig(plotdir + 'fss_' + plotstr + '.pdf', format = 'pdf')
-fig1.savefig(plotdir + 'diprec_' + plotstr + '.png', dpi = 300, 
-             transparent = True)
+fig1.savefig(plotdir + 'diprec_' + plotstr + '.pdf')
 if args.ana == 'det':
-    fig2.savefig(plotdir + 'fss_' + plotstr + '.png', dpi = 300, 
-                transparent = True)
+    fig2.savefig(plotdir + 'fss_' + plotstr + '.pdf')
 plt.close('all')
 
             

@@ -115,18 +115,25 @@ for ie, expid in enumerate(args.expid):
         for t in timelist:
             print t
             # Load fof file
+
             foffn = (DATA_DIR + '/' + yyyymmddhhmmss(t) + '/det/fof_' +  
                     yyyymmddhhmmss(t) + '.nc')
+            print foffn
             fof = fdbkfile(foffn)
             var_tab = fof.table_varno
             obs_tab = fof.table_obstype
+            # print var_tab, obs_tab
             varno = var_tab[args.var]
             obsno = obs_tab[args.obs]
             if fof.fb_times()[-1]/60. > 24.:
                 hint = 48
             
             # Get temp data, T
-            ov = fof.obs_veri(varno=varno, obstype=obsno)
+            try:
+                ov = fof.obs_veri(varno=varno, obstype=obsno)
+            except:
+                print 'ATTENTION, something is missing...'
+                continue
             hdr_inds = ov['hdr_inds']
             hdr_unique = np.unique(hdr_inds)  # Get unique obs labels 
             
@@ -273,10 +280,8 @@ if args.obs in ['TEMP', 'AIREP']:
                  #transparent = True)
     #fig2.savefig(plotdir + 'bias_' + plotstr + '.pdf', format = 'pdf',
                  #transparent = True)
-    fig1.savefig(plotdir + 'rmse_' + plotstr + '.png', format = 'png',
-                 transparent = True, dpi = 300)
-    fig2.savefig(plotdir + 'bias_' + plotstr + '.png', format = 'png',
-                 transparent = True, dpi = 300)
+    fig1.savefig(plotdir + 'rmse_' + plotstr + '.pdf')
+    fig2.savefig(plotdir + 'bias_' + plotstr + '.pdf')
     plt.close('all')
 
 
@@ -288,8 +293,8 @@ if args.obs == 'SYNOP':
 
     ax.set_title(plotstr + '\n RMSE (solid), Bias (dotted)')
     plt.tight_layout()
-    print 'Plotting:', plotdir + plotstr
-    fig.savefig(plotdir + plotstr, dpi = 200)
+    print 'Plotting:', plotdir + plotstr + '.pdf'
+    fig.savefig(plotdir + plotstr + '.pdf')
     plt.close('all')
 
 
