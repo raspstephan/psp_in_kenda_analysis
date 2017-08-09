@@ -11,3 +11,9 @@ PSPv2 has the following settings: blpert_sigma=2.5, blpert_const=2.0, blpert_fix
 If TL500, blpert_const=0.6.
 
 The DA cycling is run from 26 May 00UTC to 9 June 00UTC with ensemble analyses written every 12 hours. 
+
+Deterministic forecasts are run every 12 hours with a forecast lead time of 24 hours. 
+
+Ensemble forecasts with 20 members are run on 29 May 00UTC and from 4 June 00UTC to 6 June 12 UTC.
+
+The DA runscripts are saved in `bacy_6000.04`, while the forecast runscripts are saved in `bacy_hreich`.
