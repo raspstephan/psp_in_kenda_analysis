@@ -18,6 +18,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
 from cosmo_utils.scores.probab import FSS
+from helpers import save_fig_and_log
 
 from config import *   # Import config file
 
@@ -269,12 +270,11 @@ if args.ana == 'ens':
 plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 
-print 'Save figure in :', plotdir
-#fig1.savefig(plotdir + 'diprec_' + plotstr + '.pdf', format = 'pdf')
-#fig2.savefig(plotdir + 'fss_' + plotstr + '.pdf', format = 'pdf')
-fig1.savefig(plotdir + 'diprec_' + plotstr + '.pdf')
+# Save figure and create log str
+save_fig_and_log(fig1, 'diprec_' + plotstr, plotdir)
 if args.ana == 'det':
-    fig2.savefig(plotdir + 'fss_' + plotstr + '.pdf')
+    save_fig_and_log(fig2, 'fss_' + plotstr, plotdir)
+
 plt.close('all')
 
             

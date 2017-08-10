@@ -6,7 +6,7 @@ if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
     radardir = '/e/uwork/extsrasp/radolan/'
     savedir_base = '/e/uwork/extsrasp/save/'
 elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
-    datadir_cosmo = '/project/meteo/cosmo/stephan.rasp/dwd_data/data_forecast/'
+    datadir_cosmo = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/data_forecast/'
     datadir_raid = '/project/meteo/data/raid_linux/stephan.rasp/dwd_data/data_forecast/'
     datadir_cosmo2 = '/project/meteo/cosmo/stephan.rasp/dwd_data/data/'
     datadir_raid2 = '/project/meteo/data/raid_linux/stephan.rasp/dwd_data/data/'
@@ -35,8 +35,8 @@ elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
                    'DA_REF_TL500': datadir_raid2,
                    }
     radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
-    plotdir = '/home/s/S.Rasp/dwd_plots/plots/'
-    savedir_base = '/project/meteo/cosmo/stephan.rasp/dwd_data/save/'
+    plotdir = '/home/s/S.Rasp/repositories/dwd_scripts/figures/'
+    savedir_base = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/save/'
     feeddir = '/project/meteo/cosmo/stephan.rasp/dwd_data/feedback/'
 else: 
     raise Exception('Working directory not recognized:' + os.getcwd())
