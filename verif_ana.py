@@ -14,6 +14,7 @@ from cosmo_utils.helpers import yyyymmddhhmmss, yyyymmddhhmmss_strtotime, \
                                 make_timelist
 from datetime import timedelta
 from scipy.stats import binned_statistic
+from helpers import save_fig_and_log
 
 from config import *
 
@@ -245,8 +246,7 @@ if args.obs == 'SYNOP':
     plt.tight_layout()
     plotdir = plotdir + expid_str[:-1] + '/verif_ana/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
-    print 'Save figure:', plotdir + plotstr
-    fig.savefig(plotdir + plotstr, dpi = 300)
+    save_fig_and_log(fig, plotstr, plotdir)
     plt.close('all')
 
 if args.obs == 'TEMP':
@@ -268,8 +268,7 @@ if args.obs == 'TEMP':
     plotdir = plotdir + expid_str[:-1] + '/verif_ana/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
     fig.suptitle(expid_str + '  ' + plotstr)
-    print 'Save figure:', plotdir + plotstr
-    fig.savefig(plotdir + plotstr, dpi = 300)
+    save_fig_and_log(fig, plotstr, plotdir)
     plt.close('all')
 
 if args.obs == 'AIREP':
@@ -289,8 +288,7 @@ if args.obs == 'AIREP':
     plotdir = plotdir + expid_str[:-1] + '/verif_ana/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
     fig.suptitle(expid_str + '  ' + plotstr)
-    print 'Save figure:', plotdir + plotstr
-    fig.savefig(plotdir + plotstr, dpi = 300)
+    save_fig_and_log(fig, plotstr, plotdir)
     plt.close('all')
 
 

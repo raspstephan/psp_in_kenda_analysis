@@ -16,6 +16,7 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
+from helpers import save_fig_and_log
 
 from config import *
 
@@ -275,13 +276,10 @@ if args.obs in ['TEMP', 'AIREP']:
     
     fig1.suptitle(args.obs + ' ' + args.var + ' RMSE', fontsize = 10)
     fig2.suptitle(args.obs + ' ' + args.var + ' BIAS', fontsize = 10)
-    print 'Plotting:', plotdir + 'rmse_' + plotstr + '.pdf'
-    #fig1.savefig(plotdir + 'rmse_' + plotstr + '.pdf', format = 'pdf',
-                 #transparent = True)
-    #fig2.savefig(plotdir + 'bias_' + plotstr + '.pdf', format = 'pdf',
-                 #transparent = True)
-    fig1.savefig(plotdir + 'rmse_' + plotstr + '.pdf')
-    fig2.savefig(plotdir + 'bias_' + plotstr + '.pdf')
+
+    save_fig_and_log(fig1, 'rmse_' + plotstr, plotdir)
+    save_fig_and_log(fig2, 'bias_' + plotstr, plotdir)
+
     plt.close('all')
 
 
@@ -293,8 +291,7 @@ if args.obs == 'SYNOP':
 
     ax.set_title(plotstr + '\n RMSE (solid), Bias (dotted)')
     plt.tight_layout()
-    print 'Plotting:', plotdir + plotstr + '.pdf'
-    fig.savefig(plotdir + plotstr + '.pdf')
+    save_fig_and_log(fig, plotstr, plotdir)
     plt.close('all')
 
 

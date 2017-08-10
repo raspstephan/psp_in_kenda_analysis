@@ -17,6 +17,7 @@ from cosmo_utils.pywgrib import getfobj_ens, getfobj
 from cosmo_utils.diag import mean_spread_fieldobjlist
 from datetime import timedelta
 from scipy.stats import binned_statistic
+from helpers import save_fig_and_log
 
 from config import *
 
@@ -186,8 +187,7 @@ plt.tight_layout(rect=[0, 0.0, 1, 0.95])
 plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 fig.suptitle(expid_str[:-1] + '  ' + plotstr)
-print 'Save figure:', plotdir + plotstr
-fig.savefig(plotdir + plotstr + '.pdf')
+save_fig_and_log(fig, plotstr, plotdir)
 plt.close('all')
 
 
