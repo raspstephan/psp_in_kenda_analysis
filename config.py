@@ -21,25 +21,18 @@ else:
 # Config for experiment
 cdict = {'radar': 'k',
          'REF': 'navy',
-         'REF_2JUN_ens': 'navy',
          'REF_TL500': 'darkgreen',
          'PSP_TL500': 'orange',
          'DA_REF': 'navy',
-         'DA_REF_2JUN': 'navy',
          'DA_REF_ens': 'navy',
          'DA_REF_TL500': 'cyan',
-         'DA_REF_TL500_2JUN': 'cyan',
-         'DA_REF_TL500_2JUN_ens': 'cyan',
          'DA_REF_TL500_ens': 'cyan',
          'DA_PSP_TL500': 'red',
          'DA_PSPv2_TL500': 'fuchsia',
-         'DA_PSPv2_TL500_2JUN': 'fuchsia',
-         'DA_PSPv2_TL500_2JUN_ens': 'fuchsia',
          'DA_PSPv2_TL500_ens': 'fuchsia',
-         'DA_PSPv2': 'maroon',
-         'DA_PSPv2_2JUN': 'maroon',
-         'DA_PSPv2_ens': 'maroon',
-         'DA_PSPv2_2JUN_ens': 'maroon',
+         'DA_PSPv2': 'red',
+         'DA_PSPv2_ens': 'red',
+         'noDA_PSPv2': 'maroon',
          }
 
 pw = 7.87

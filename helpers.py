@@ -103,4 +103,4 @@ def set_plot(ax, title, args, hourlist_plot):
     ax.set_xticklabels(hourlist_plot[::6])
     ax.set_xlim(0, 24)
     ax.set_title(title)
-    plt.subplots_adjust(bottom=0.18, left=0.15, right=0.97)
+    plt.subplots_adjust(bottom=0.18, left=0.18, right=0.97)
