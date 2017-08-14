@@ -24,11 +24,15 @@ totmask = np.load('./radar_tot_mask.npy')
 parser = argparse.ArgumentParser(description='Process input')
 parser.add_argument('--expid', metavar='expid', type=str, nargs='+',
                     help='Experiment ID')
-parser.add_argument('--date_start', metavar='date_start', type=str,
-                    default=' ', help='Start date for date loop '
-                                      '(yyyymmddhhmmss)')
-parser.add_argument('--date_stop', metavar='date_stop', type=str,
-                    default='20160610000000',
+parser.add_argument('--date_start',
+                    metavar='date_start',
+                    type=str,
+                    default='20160526000000',
+                    help='Start date for date loop (yyyymmddhhmmss)')
+parser.add_argument('--date_stop',
+                    metavar='date_stop',
+                    type=str,
+                    default='20160609000000',
                     help='End date for date loop (yyyymmddhhmmss)')
 parser.add_argument('--date_inc', metavar='date_inc', type=int,
                     default='24',
@@ -50,6 +54,11 @@ if tstart == tend:
     timelist = [tstart]
 else:
     timelist = make_timelist(tstart, tend, tint)
+
+hourlist = []
+for i in range(args.hint + 1):
+    hourlist.append(str((tstart + timedelta(hours=i)).hour))
+print hourlist
 
 n = 21
 kernel = np.ones((n, n)) / float((n * n))
@@ -174,17 +183,17 @@ for ie, expid in enumerate(args.expid):
                      linewidth=3, label='Radar')
         ax1.plot(range(1, radarmean.shape[0] + 1), detmean, c=cdict[expid],
                  linewidth=2,
-                 label=strip_expid(expid))
+                 label=expid)
 
         # axarr[1].plot(range(radarmean.shape[0]), detrmse, c = cdict[expid],
         # linewidth = 2)
         ax2.plot(range(1, radarmean.shape[0] + 1), meanfss, c=cdict[expid],
-                 linewidth=2, label=strip_expid(expid))
+                 linewidth=2, label=expid)
     if args.ana == 'ens':
         ax1.plot(range(1, ensspread.shape[0] + 1), ensspread, c=cdict[expid],
                  linewidth=2, linestyle='--')
         ax1.plot(range(1, ensspread.shape[0] + 1), ensrmse, c=cdict[expid],
-                 linewidth=1.5, label=strip_expid(expid))
+                 linewidth=1.5, label=expid)
 
 # End expid loop
 # Finish the plots
@@ -193,7 +202,7 @@ if args.ana == 'det':
     ax2.set_ylabel('FSS [Neighborhood size 58.8km]')
     for ax in [ax1, ax2]:
         plt.sca(ax)
-        ax.set_xlabel('Time [UTC and lead time in h]')
+        ax.set_xlabel('Time [UTC]')
         ax.legend(loc=0, fontsize=8, frameon=False)
         ymax = np.ceil(ax.get_ylim()[1] * 10) / 10.
         ax.set_ylim(0, ymax)
@@ -201,20 +210,22 @@ if args.ana == 'det':
         ax.spines['top'].set_visible(False)
         ax.spines['left'].set_position(('outward', 10))
         ax.spines['bottom'].set_position(('outward', 10))
-        ax.set_xticks([0, 6, 12, 18, 24])
+        ax.set_xticks(range(args.hint + 1)[::6])
+        ax.set_xticklabels(hourlist[::6])
         ax.set_xlim(0, 24)
-        ax.set_title('Deterministic forecasts ' + args.date_start)
+        ax.set_title('Deterministic forecasts ' + args.date_start[:-4] + '-' +
+                     args.date_stop[:-4])
         plt.tight_layout()
 if args.ana == 'ens':
-    ax1.set_xlabel('Time [UTC/h]')
+    ax1.set_xlabel('Time [UTC]')
     # ax1.set_ylabel('Normalized spread / RMSE at 58.8km scale')
     ax1.set_ylabel('Normalized spread at 58.8km scale')
     ax1.spines['right'].set_visible(False)
     ax1.spines['top'].set_visible(False)
     ax1.spines['left'].set_position(('outward', 10))
     ax1.spines['bottom'].set_position(('outward', 10))
-    ax1.set_xticks([0, 6, 12, 18, 24])
-    ax1.set_xlim(0, 24)
+    ax.set_xticks(range(args.hint + 1)[::6])
+    ax.set_xticklabels(hourlist[::6])
     ax1.legend(loc=0, fontsize=8, frameon=False)
     ax1.set_title('Normalized ensemble spread (--) and RMSE (-)')
     plt.tight_layout()
