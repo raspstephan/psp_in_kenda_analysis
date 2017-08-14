@@ -12,6 +12,8 @@ from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, ddhhmmss_strtotime, \
 from datetime import timedelta
 from config import *   # Import config file
 from cosmo_utils.pyncdf import getfobj_ncdf
+import numpy as np
+import matplotlib.pyplot as plt
 
 
 def save_fig_and_log(fig, fig_name, plot_dir):
@@ -85,3 +87,20 @@ def load_ens(datadir, date, t):
 def strip_expid(expid):
     return expid.replace('DA_', '').replace('_ens', '').replace('v2', '').\
         replace('_2JUN', '')
+
+
+def set_plot(ax, title, args, hourlist_plot):
+    plt.sca(ax)
+    ax.set_xlabel('Time [UTC]')
+    ax.legend(loc=0, fontsize=8, frameon=False)
+    ymax = np.ceil(ax.get_ylim()[1] * 10) / 10.
+    ax.set_ylim(0, ymax)
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['left'].set_position(('outward', 3))
+    ax.spines['bottom'].set_position(('outward', 3))
+    ax.set_xticks(range(args.hint + 1)[::6])
+    ax.set_xticklabels(hourlist_plot[::6])
+    ax.set_xlim(0, 24)
+    ax.set_title(title)
+    plt.subplots_adjust(bottom=0.18, left=0.15, right=0.97)

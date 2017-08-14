@@ -41,3 +41,5 @@ cdict = {'radar': 'k',
          'DA_PSPv2_ens': 'maroon',
          'DA_PSPv2_2JUN_ens': 'maroon',
          }
+
+pw = 7.87

@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
 from cosmo_utils.scores.probab import FSS
 from helpers import save_fig_and_log, load_det, load_radar, load_ens, \
-    strip_expid
+    strip_expid, set_plot
 from config import *  # Import config file
 
 # Load radar tot mask
@@ -55,18 +55,18 @@ if tstart == tend:
 else:
     timelist = make_timelist(tstart, tend, tint)
 
-hourlist = []
+hourlist_plot = []
 for i in range(args.hint + 1):
-    hourlist.append(str((tstart + timedelta(hours=i)).hour))
-print hourlist
+    hourlist_plot.append(str((tstart + timedelta(hours=i)).hour))
 
 n = 21
 kernel = np.ones((n, n)) / float((n * n))
 
 # Set up figure
-fig1, ax1 = plt.subplots(1, 1, figsize=(6, 4))
+aspect = 0.75
+fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
 if args.ana == 'det':
-    fig2, ax2 = plt.subplots(1, 1, figsize=(6, 4))
+    fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
 
 expid_str = ''
 for ie, expid in enumerate(args.expid):
@@ -198,37 +198,14 @@ for ie, expid in enumerate(args.expid):
 # End expid loop
 # Finish the plots
 if args.ana == 'det':
-    ax1.set_ylabel('mean hourly precipitation [mm/h]')
-    ax2.set_ylabel('FSS [Neighborhood size 58.8km]')
+    ax1.set_ylabel('Precipitation [mm/h]')
+    ax2.set_ylabel('FSS [58.8km]')
     for ax in [ax1, ax2]:
-        plt.sca(ax)
-        ax.set_xlabel('Time [UTC]')
-        ax.legend(loc=0, fontsize=8, frameon=False)
-        ymax = np.ceil(ax.get_ylim()[1] * 10) / 10.
-        ax.set_ylim(0, ymax)
-        ax.spines['right'].set_visible(False)
-        ax.spines['top'].set_visible(False)
-        ax.spines['left'].set_position(('outward', 10))
-        ax.spines['bottom'].set_position(('outward', 10))
-        ax.set_xticks(range(args.hint + 1)[::6])
-        ax.set_xticklabels(hourlist[::6])
-        ax.set_xlim(0, 24)
-        ax.set_title('Deterministic forecasts ' + args.date_start[:-4] + '-' +
-                     args.date_stop[:-4])
-        plt.tight_layout()
+        set_plot(ax, 'Det fc ' + args.date_start[:-4] + '-' +
+                 args.date_stop[:-4], args, hourlist_plot)
 if args.ana == 'ens':
-    ax1.set_xlabel('Time [UTC]')
-    # ax1.set_ylabel('Normalized spread / RMSE at 58.8km scale')
-    ax1.set_ylabel('Normalized spread at 58.8km scale')
-    ax1.spines['right'].set_visible(False)
-    ax1.spines['top'].set_visible(False)
-    ax1.spines['left'].set_position(('outward', 10))
-    ax1.spines['bottom'].set_position(('outward', 10))
-    ax.set_xticks(range(args.hint + 1)[::6])
-    ax.set_xticklabels(hourlist[::6])
-    ax1.legend(loc=0, fontsize=8, frameon=False)
-    ax1.set_title('Normalized ensemble spread (--) and RMSE (-)')
-    plt.tight_layout()
+    set_plot(ax1, 'Normalized ensemble spread (--) and RMSE (-)',
+             args, hourlist_plot)
 
 plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
