@@ -46,6 +46,11 @@ parser.add_argument('--composite',
                     action='store_true',
                     help='Composite or individual plots.')
 parser.set_defaults(composite=False)
+parser.add_argument('--no_radar',
+                    dest='no_radar',
+                    action='store_true',
+                    help='Do not plot radar curve')
+parser.set_defaults(no_radar=False)
 args = parser.parse_args()
 assert args.ana in ['det', 'ens'], 'Wrong analysis!'
 
@@ -204,12 +209,14 @@ aspect = 0.75
 x = range(1, args.hint + 1)
 if args.composite:
     plotstr = args.ana + '_comp_' + args.date_start + '_' + args.date_stop
+    if args.no_radar:
+        plotstr += '_no_radar'
     fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
     if args.ana == 'det':
         fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
     for ie, expid in enumerate(args.expid):
         if args.ana == 'det':
-            if ie == 0:
+            if ie == 0 and not args.no_radar:
                 ax1.plot(x, exp_list[ie][0],
                          c='k', linewidth=2, label='Radar')
             ax1.plot(x, exp_list[ie][1],
@@ -247,12 +254,14 @@ else:
     for it, t in enumerate(timelist):
         date = yyyymmddhhmmss(t)
         plotstr = args.ana + '_' + date
+        if args.no_radar:
+            plotstr += '_no_radar'
         fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
         if args.ana == 'det':
             fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
         for ie, expid in enumerate(args.expid):
             if args.ana == 'det':
-                if ie == 0:
+                if ie == 0 and not args.no_radar:
                     ax1.plot(x, exp_list[ie][0][it],
                              c='k', linewidth=2, label='Radar')
                 ax1.plot(x, exp_list[ie][1][it],
@@ -275,12 +284,13 @@ else:
             set_plot(ax1, 'Normalized ensemble spread (--) and RMSE (-)',
                      args, hourlist_plot)
 
-        plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
-        if not os.path.exists(plotdir): os.makedirs(plotdir)
+        pd = plotdir + expid_str[:-1] + '/verif_fc_prec/'
+        if not os.path.exists(pd):
+            os.makedirs(pd)
 
         # Save figure and create log str
-        save_fig_and_log(fig1, 'diprec_' + plotstr, plotdir)
+        save_fig_and_log(fig1, 'diprec_' + plotstr, pd)
         if args.ana == 'det':
-            save_fig_and_log(fig2, 'fss_' + plotstr, plotdir)
+            save_fig_and_log(fig2, 'fss_' + plotstr, pd)
 
         plt.close('all')

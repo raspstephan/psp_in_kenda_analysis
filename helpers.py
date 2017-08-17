@@ -30,6 +30,7 @@ def save_fig_and_log(fig, fig_name, plot_dir):
     pwd = check_output(['pwd']).rstrip()   # Need to remove trailing /n
     git_hash = Repo(pwd).heads[0].commit
     exe_str = ' '.join(sys.argv)
+    py_env = check_output(['conda', 'env', 'list']).splitlines()[2]
 
     log_str = ("""
 Time: %s\n
@@ -37,7 +38,8 @@ Executed command:\n
 python %s\n
 In directory: %s\n
 Git hash: %s\n
-    """ % (time_stamp, exe_str, pwd, str(git_hash)))
+Anaconda environment: %s\n
+    """ % (time_stamp, exe_str, pwd, str(git_hash), py_env))
 
     logf = open(plot_dir + '/' + fig_name + '.log', 'w+')
     logf.write(log_str)
