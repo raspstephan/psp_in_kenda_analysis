@@ -30,7 +30,11 @@ def save_fig_and_log(fig, fig_name, plot_dir):
     pwd = check_output(['pwd']).rstrip()   # Need to remove trailing /n
     git_hash = Repo(pwd).heads[0].commit
     exe_str = ' '.join(sys.argv)
-    py_env = check_output(['conda', 'env', 'list']).splitlines()[2]
+    s = check_output(['conda', 'env', 'list'])
+    for l in s.split('\n'):
+        if '*' in l:
+            py_env = l
+    assert 'py_env' in locals, 'No active conda environemnt found.'
 
     log_str = ("""
 Time: %s\n
