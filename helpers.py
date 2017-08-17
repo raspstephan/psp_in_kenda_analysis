@@ -34,7 +34,7 @@ def save_fig_and_log(fig, fig_name, plot_dir):
     for l in s.split('\n'):
         if '*' in l:
             py_env = l
-    assert 'py_env' in locals, 'No active conda environemnt found.'
+    assert 'py_env' in locals(), 'No active conda environemnt found.'
 
     log_str = ("""
 Time: %s\n
