@@ -40,7 +40,7 @@ parser.add_argument('--date_inc', metavar='date_inc', type=int,
 parser.add_argument('--hint', metavar='hint', type=int, default=24,
                     help='Maximum forecast lead time')
 parser.add_argument('--ana', metavar='ana', type=str,
-                    help='Type of analysis to be done [di]')
+                    help='Type of analysis to be done [det or ens]')
 parser.add_argument('--composite',
                     dest='composite',
                     action='store_true',
@@ -237,16 +237,19 @@ if args.composite:
             set_plot(ax, 'Det fc ' + args.date_start[:-4] + '-' +
                      args.date_stop[:-4], args, hourlist_plot)
     if args.ana == 'ens':
-        set_plot(ax1, 'Normalized ensemble spread (--) and RMSE (-)',
+        ax1.set_ylabel('Norm spread/rmse')
+        set_plot(ax1, 'Normalized spread (--) and RMSE (-)',
                  args, hourlist_plot)
 
     plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
     if not os.path.exists(plotdir): os.makedirs(plotdir)
 
     # Save figure and create log str
-    save_fig_and_log(fig1, 'diprec_' + plotstr, plotdir)
     if args.ana == 'det':
+        save_fig_and_log(fig1, 'diprec_' + plotstr, plotdir)
         save_fig_and_log(fig2, 'fss_' + plotstr, plotdir)
+    else:
+        save_fig_and_log(fig1, 'ens_spread_' + plotstr, plotdir)
 
     plt.close('all')
 
@@ -281,7 +284,8 @@ else:
             for ax in [ax1, ax2]:
                 set_plot(ax, 'Det fc ' + date[:-4], args, hourlist_plot)
         if args.ana == 'ens':
-            set_plot(ax1, 'Normalized ensemble spread (--) and RMSE (-)',
+            ax1.set_ylabel('Norm spread/rmse')
+            set_plot(ax1, 'Normalized spread (--) and RMSE (-)',
                      args, hourlist_plot)
 
         pd = plotdir + expid_str[:-1] + '/verif_fc_prec/'
@@ -289,8 +293,10 @@ else:
             os.makedirs(pd)
 
         # Save figure and create log str
-        save_fig_and_log(fig1, 'diprec_' + plotstr, pd)
         if args.ana == 'det':
+            save_fig_and_log(fig1, 'diprec_' + plotstr, pd)
             save_fig_and_log(fig2, 'fss_' + plotstr, pd)
+        else:
+            save_fig_and_log(fig1, 'ens_spread_' + plotstr, pd)
 
         plt.close('all')
