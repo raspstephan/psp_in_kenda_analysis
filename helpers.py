@@ -10,7 +10,7 @@ from cosmo_utils.pywgrib import getfobj_ens, getfobj
 from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, ddhhmmss_strtotime, \
     yymmddhhmm
 from datetime import timedelta
-from config import *   # Import config file
+from config import *  # Import config file
 from cosmo_utils.pyncdf import getfobj_ncdf
 import numpy as np
 import matplotlib.pyplot as plt
@@ -27,7 +27,7 @@ def save_fig_and_log(fig, fig_name, plot_dir):
 
     # Step 2: Create and save log file
     time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
-    pwd = check_output(['pwd']).rstrip()   # Need to remove trailing /n
+    pwd = check_output(['pwd']).rstrip()  # Need to remove trailing /n
     git_hash = Repo(pwd).heads[0].commit
     exe_str = ' '.join(sys.argv)
     s = check_output(['conda', 'env', 'list'])
@@ -62,36 +62,36 @@ def load_det(datadir, date, t):
     topdir = datadir + '/' + date + '/'
     gribfn = gribpref + t + precsuf
     detfn = topdir + 'det/' + gribfn
-    detfobj = getfobj(detfn, fieldn = 'PREC_PERHOUR')
+    detfobj = getfobj(detfn, fieldn='PREC_PERHOUR')
     # Minus one hour
-    #gribfnm1 = gribpref + ddhhmmss(ddhhmmss_strtotime(t) -
-                                 #timedelta(hours = 1)) + precsuf
-    #detfnm1 = topdir + 'det/' + gribfnm1
-    #detfobjm1 = getfobj(detfnm1, fieldn = 'TOT_PREC')
-    #detfobj.data = detfobj.data - detfobjm1.data
+    # gribfnm1 = gribpref + ddhhmmss(ddhhmmss_strtotime(t) -
+    # timedelta(hours = 1)) + precsuf
+    # detfnm1 = topdir + 'det/' + gribfnm1
+    # detfobjm1 = getfobj(detfnm1, fieldn = 'TOT_PREC')
+    # detfobj.data = detfobj.data - detfobjm1.data
     return detfobj
 
 
 def load_radar(date, t):
     dateobj = (yyyymmddhhmmss_strtotime(date) + ddhhmmss_strtotime(t))
-    radardt = timedelta(minutes = 10)   # TODO Is this correct???
+    radardt = timedelta(minutes=10)  # TODO Is this correct???
     radardateobj = dateobj - radardt
     radarfn = radardir + radarpref + yymmddhhmm(radardateobj) + radarsufx
-    radarfobj = getfobj_ncdf(radarfn, fieldn = 'pr', dwdradar = True)
+    radarfobj = getfobj_ncdf(radarfn, fieldn='pr', dwdradar=True)
     return radarfobj
 
 
 def load_ens(datadir, date, t):
     topdir = datadir + '/' + date + '/'
     gribfn = gribpref + t + precsuf
-    ensfobjlist = getfobj_ens(topdir, 'sub', mems = nens, gribfn = gribfn,
-                              dir_prefix = 'ens', fieldn = 'PREC_PERHOUR',
-                              para = 4)
+    ensfobjlist = getfobj_ens(topdir, 'sub', mems=nens, gribfn=gribfn,
+                              dir_prefix='ens', fieldn='PREC_PERHOUR',
+                              para=4)
     return ensfobjlist
 
 
 def strip_expid(expid):
-    return expid.replace('DA_', '').replace('_ens', '').replace('v2', '').\
+    return expid.replace('DA_', '').replace('_ens', '').replace('v2', ''). \
         replace('_2JUN', '')
 
 
