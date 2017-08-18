@@ -148,9 +148,9 @@ for idate, date in enumerate(datelist):
         fig.suptitle(plotstr, fontsize=18)
 
         plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-        plotdir = plotdir + expid_str[:-1] + '/prec_stamps/'
-        if not os.path.exists(plotdir): os.makedirs(plotdir)
-        save_fig_and_log(fig, 'det_stamps_' + plotstr, plotdir)
+        pd = plotdir + expid_str[:-1] + '/prec_stamps/'
+        if not os.path.exists(pd): os.makedirs(pd)
+        save_fig_and_log(fig, 'det_stamps_' + plotstr, pd)
 
         
         
