@@ -8,6 +8,7 @@ if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
     savedir_base = '/e/uwork/extsrasp/save/'
 elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
     datadir = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/data_forecast/'
+    datadir_da = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/data/'
     datadir_cosmo2 = '/project/meteo/cosmo/stephan.rasp/dwd_data/data/'
     datadir_raid2 = '/project/meteo/data/raid_linux/stephan.rasp/dwd_data/data/'
 

@@ -53,8 +53,10 @@ Anaconda environment: %s\n
 radarpref = 'raa01-rw_10000-'
 radarsufx = '-dwd---bin.nc'
 precsuf = '_15'
+precsuf_da = '_prec'
 gribpref = 'lfff'
 nens = 20
+nens_da = 40
 
 
 # Define loading functions
@@ -72,7 +74,7 @@ def load_det(datadir, date, t):
     return detfobj
 
 
-def load_radar(date, t):
+def load_radar(date, t='00000000'):
     dateobj = (yyyymmddhhmmss_strtotime(date) + ddhhmmss_strtotime(t))
     radardt = timedelta(minutes=10)  # TODO Is this correct???
     radardateobj = dateobj - radardt
@@ -87,6 +89,19 @@ def load_ens(datadir, date, t):
     ensfobjlist = getfobj_ens(topdir, 'sub', mems=nens, gribfn=gribfn,
                               dir_prefix='ens', fieldn='PREC_PERHOUR',
                               para=4)
+    return ensfobjlist
+
+
+def load_det_da(datadir, t):
+    detfn = datadir + gribpref + t + precsuf_da + '.det'
+    detfobj = getfobj(detfn, fieldn='TOT_PREC_S')
+    return detfobj
+
+
+def load_ens_da(datadir, t):
+    gribfn = gribpref + t + precsuf_da
+    ensfobjlist = getfobj_ens(datadir, 'same', mems=nens, gribfn=gribfn,
+                              fieldn='TOT_PREC_S', para=4)
     return ensfobjlist
 
 
