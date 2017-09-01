@@ -39,13 +39,21 @@ parser.add_argument('--composite',
                     dest='composite',
                     action='store_true',
                     help='Composite or individual plots.')
+parser.set_defaults(composite=False)
 parser.add_argument('--radar_thresh',
                     type=float,
                     default=100.,
                     help='Radar values above threshold will be set to nan.'
                          'Default = 100.')
-parser.set_defaults(composite=False)
+parser.add_argument('--n_kernel',
+                    type=int,
+                    default=21,
+                    help='Width of convolution kernel. Default=21')
 args = parser.parse_args()
+
+assert args.n_kernel % 2 == 1, 'n_kernel must be odd'
+kernel = (np.ones((args.n_kernel, args.n_kernel)) /
+          float((args.n_kernel * args.n_kernel)))
 
 # Loop over time
 tstart = yyyymmddhhmmss_strtotime(args.date_ana_start)
@@ -72,13 +80,13 @@ for ie, expid in enumerate(args.expid):
     if not os.path.exists(savedir): os.makedirs(savedir)
 
     savefn = (savedir + expid + '_' + args.date_ana_start + '_' +
-              args.date_ana_stop + '.npy')
+              args.date_ana_stop + '_n_' + str(args.n_kernel) + '_.npy')
     print 'Try to load pre-saved data:', savefn
     if os.path.exists(savefn):
         print 'Found pre-saved data.'
         # These objects are lists containing the hourly mean values
         # Corresponding to timelist. For each expid!
-        radarmean, detmean, detrmse, ensmean, ensspread = np.load(savefn)
+        radarmean, detmean, detrmse, ensrmse, ensspread = np.load(savefn)
     else:
         print 'Did not find pre-saved data, compute!'
         radarmean = []
@@ -122,6 +130,7 @@ for ie, expid in enumerate(args.expid):
             meanfield = np.mean(convfieldlist, axis=0)
 
             # Compute the statistics
+            radarmean.append(np.nanmean(nanradar))
             detmean.append(np.nanmean(nandet))
             detrmse.append(np.sqrt(np.nanmean((convradar - convdet) ** 2)))
             ensspread.append(np.nanmean((np.std(convfieldlist, axis=0) /
@@ -145,18 +154,19 @@ for ie, expid in enumerate(args.expid):
                                    bins=hour_bins)[0]
         detrmse = binned_statistic(hourlist, detrmse,
                                    bins=hour_bins)[0]
-        ensmean = binned_statistic(hourlist, ensmean,
+        ensrmse = binned_statistic(hourlist, ensrmse,
                                    bins=hour_bins)[0]
         ensspread = binned_statistic(hourlist, ensspread,
                                      bins=hour_bins)[0]
 
-    exp_list.append([radarmean, detmean, detrmse, ensmean, ensspread])
+    exp_list.append([radarmean, detmean, detrmse, ensrmse, ensspread])
 
 # Now the plotting...
 aspect = 0.75
 if args.composite:
     x = np.unique(hourlist)
-    plotstr = 'comp_' + args.date_ana_start + '_' + args.date_ana_stop
+    plotstr = ('comp_' + args.date_ana_start + '_' + args.date_ana_stop +
+               '_n_' + str(args.n_kernel))
     fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
     fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
     for ie, expid in enumerate(args.expid):
@@ -195,11 +205,12 @@ else:
         daylist = [tstart]
     for iday, day in enumerate(daylist):
         date = yyyymmddhhmmss(day)
-        plotstr = date
+        plotstr = date + '_n_' + str(args.n_kernel)
         fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
         fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
         for ie, expid in enumerate(args.expid):
             if ie == 0:
+                print len(exp_list[ie][0])
                 ax1.plot(x, exp_list[ie][0][index_start:index_stop],
                          c='k', linewidth=2, label='Radar')
             ax1.plot(x, exp_list[ie][1][index_start:index_stop],
@@ -212,7 +223,7 @@ else:
                      c=cdict[expid], linewidth=1.5, linestyle='--')
 
         ax1.set_ylabel('Prec mean/rmse [mm/h]')
-        ax2.set_ylabel('Prec ens rmse/spread [mm/h]')
+        ax2.set_ylabel('ens norm rmse/spread [mm/h]')
         for ax in [ax1, ax2]:
             set_plot(ax, 'Det fc ' + date[:-4], args, x)
 
