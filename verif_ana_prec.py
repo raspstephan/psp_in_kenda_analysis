@@ -8,8 +8,6 @@ import argparse
 import numpy as np
 import os
 import matplotlib
-
-matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from cosmo_utils.helpers import yyyymmddhhmmss, yyyymmddhhmmss_strtotime, \
     make_timelist, yymmddhhmm, ddhhmmss
@@ -18,7 +16,7 @@ from cosmo_utils.pywgrib import getfobj_ens, getfobj
 from cosmo_utils.diag import mean_spread_fieldobjlist
 from datetime import timedelta
 from scipy.stats import binned_statistic
-from helpers import save_fig_and_log
+from helpers import save_fig_and_log, load_radar, load_det_da, load_ens_da
 
 from config import *
 
@@ -29,15 +27,12 @@ parser.add_argument('--date_ana_start', metavar='date_ana_start', type=str,
                     help='Start date of verification (yyyymmddhhmmss)')
 parser.add_argument('--date_ana_stop', metavar='date_ana_stop', type=str,
                     help='End date of verification (yyyymmddhhmmss)')
-parser.add_argument('--composite', metavar='composite', type=str,
-                    default='False',
-                    help='If True diurnal composite is plotted for SYNOP')
+parser.add_argument('--composite',
+                    dest='composite',
+                    action='store_true',
+                    help='Composite or individual plots.')
+parser.set_defaults(composite=False)
 args = parser.parse_args()
-
-plotstr = ('prec_' + args.date_ana_start + '_' +
-           args.date_ana_stop)
-if args.composite == 'True':
-    plotstr += '_composite'
 
 # Loop over time
 tstart = yyyymmddhhmmss_strtotime(args.date_ana_start)
@@ -48,15 +43,12 @@ if tstart == tend:
 else:
     timelist = make_timelist(tstart, tend, tint)
 
-hourlist_plot = []
-for i in range(args.hint + 1):
-    hourlist_plot.append(str((tstart + timedelta(hours=i)).hour))
-
 # Set up figure
 fig, axarr = plt.subplots(1, 2, figsize=(10, 6))
 
 # Loop over experiments
 expid_str = ''
+exp_list = []
 for ie, expid in enumerate(args.expid):
     print 'expid = ', expid
     expid_str += expid + '_'
@@ -66,10 +58,13 @@ for ie, expid in enumerate(args.expid):
     savedir = savedir_base + expid + '/verif_ana_prec/'
     if not os.path.exists(savedir): os.makedirs(savedir)
 
-    savefn = savedir + plotstr + '.npy'
+    savefn = (savedir + expid + '_' + args.date_ana_start + '_' +
+              args.date_ana_stop + '.npy')
     print 'Try to load pre-saved data:', savefn
     if os.path.exists(savefn):
         print 'Found pre-saved data.'
+        # These objects are lists containing the hourly mean values
+        # Corresponding to timelist. For each expid!
         radarmean, detmean, detrmse, ensmean, ensspread = np.load(savefn)
     else:
         print 'Did not find pre-saved data, compute!'
@@ -78,13 +73,11 @@ for ie, expid in enumerate(args.expid):
         detrmse = []
         ensmean = []
         ensspread = []
-        hourlist = []
         # Loop over time
         for t in timelist:
             # Determine 3hrly storage time
             date_ana = yyyymmddhhmmss(t)
             print 'date_ana = ', date_ana
-            hourlist.append(t.hour)
             date_fg = yyyymmddhhmmss(t - timedelta(hours=1))
             date_store = yyyymmddhhmmss(t - timedelta(hours=t.hour % 3))
 
@@ -107,62 +100,66 @@ for ie, expid in enumerate(args.expid):
             ensmean.append(np.mean(ensmeanfobj.data[~mask]))
             ensspread.append(np.mean(ensspreadfobj.data[~mask]))
 
-        # Average if composite
-        if args.composite == 'True':
-            hour_bins = np.arange(-0.5, 24.5, 1)
-            radarmean = binned_statistic(hourlist, radarmean,
-                                         bins=hour_bins)[0]
-            detmean = binned_statistic(hourlist, detmean,
-                                       bins=hour_bins)[0]
-            detrmse = binned_statistic(hourlist, detrmse,
-                                       bins=hour_bins)[0]
-            ensmean = binned_statistic(hourlist, ensmean,
-                                       bins=hour_bins)[0]
-            ensspread = binned_statistic(hourlist, ensspread,
-                                         bins=hour_bins)[0]
-        else:
-            radarmean = np.array(radarmean)
-            detmean = np.array(detmean)
-            detrmse = np.array(detrmse)
-            ensmean = np.array(ensmean)
-            ensspread = np.array(ensspread)
-
-        # End timeloop, save the data lists
+        print 'Save data: ', savefn
         np.save(savefn, (radarmean, detmean, detrmse, ensmean, ensspread))
 
-    # Plot
-    axarr[0].plot(range(radarmean.shape[0]), radarmean, c='k', linewidth=2)
-    axarr[0].plot(range(radarmean.shape[0]), detmean, c=cdict[expid],
-                  linewidth=2,
-                  label=expid)
-    axarr[0].plot(range(radarmean.shape[0]), ensmean, c=cdict[expid],
-                  linewidth=2,
-                  linestyle='--')
-    axarr[1].plot(range(radarmean.shape[0]), detrmse, c=cdict[expid],
-                  linewidth=2)
-    axarr[1].plot(range(radarmean.shape[0]), ensspread, c=cdict[expid],
-                  linewidth=2,
-                  linestyle='--')
 
-# End expid loop
+    # Average if composite
+    if args.composite:
+        hourlist = [t.hour for t in timelist]
+        print hourlist
+        hour_bins = np.arange(-0.5, 24.5, 1)
+        radarmean = binned_statistic(hourlist, radarmean,
+                                     bins=hour_bins)[0]
+        detmean = binned_statistic(hourlist, detmean,
+                                   bins=hour_bins)[0]
+        detrmse = binned_statistic(hourlist, detrmse,
+                                   bins=hour_bins)[0]
+        ensmean = binned_statistic(hourlist, ensmean,
+                                   bins=hour_bins)[0]
+        ensspread = binned_statistic(hourlist, ensspread,
+                                     bins=hour_bins)[0]
+
+    exp_list.append([radarmean, detmean, detrmse, ensmean, ensspread])
 
 
-# Finish the plots
-if args.composite == 'True':
-    axarr[0].set_xlabel('time [UTC/h]')
-    axarr[1].set_xlabel('time [UTC/h]')
-else:
-    axarr[0].set_xlabel('time from ' + yyyymmddhhmmss(tstart) + ' [h]')
-    axarr[1].set_xlabel('time from ' + yyyymmddhhmmss(tstart) + ' [h]')
-axarr[0].set_label('[mm/h]')
-axarr[1].set_label('[mm/h]')
-axarr[0].set_title('domain mean precipitation\n det (solid), ens (dashed)')
-axarr[1].set_title('det rmse (solid) and ens spread (dashed)')
-axarr[0].legend(loc=0, fontsize=6)
-plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+# Now the plotting...
 
-plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
-if not os.path.exists(plotdir): os.makedirs(plotdir)
-fig.suptitle(expid_str[:-1] + '  ' + plotstr)
-save_fig_and_log(fig, plotstr, plotdir)
-plt.close('all')
+#
+# a=b
+#     # Plot
+#     axarr[0].plot(range(radarmean.shape[0]), radarmean, c='k', linewidth=2)
+#     axarr[0].plot(range(radarmean.shape[0]), detmean, c=cdict[expid],
+#                   linewidth=2,
+#                   label=expid)
+#     axarr[0].plot(range(radarmean.shape[0]), ensmean, c=cdict[expid],
+#                   linewidth=2,
+#                   linestyle='--')
+#     axarr[1].plot(range(radarmean.shape[0]), detrmse, c=cdict[expid],
+#                   linewidth=2)
+#     axarr[1].plot(range(radarmean.shape[0]), ensspread, c=cdict[expid],
+#                   linewidth=2,
+#                   linestyle='--')
+#
+# # End expid loop
+#
+#
+# # Finish the plots
+# if args.composite == 'True':
+#     axarr[0].set_xlabel('time [UTC/h]')
+#     axarr[1].set_xlabel('time [UTC/h]')
+# else:
+#     axarr[0].set_xlabel('time from ' + yyyymmddhhmmss(tstart) + ' [h]')
+#     axarr[1].set_xlabel('time from ' + yyyymmddhhmmss(tstart) + ' [h]')
+# axarr[0].set_label('[mm/h]')
+# axarr[1].set_label('[mm/h]')
+# axarr[0].set_title('domain mean precipitation\n det (solid), ens (dashed)')
+# axarr[1].set_title('det rmse (solid) and ens spread (dashed)')
+# axarr[0].legend(loc=0, fontsize=6)
+# plt.tight_layout(rect=[0, 0.0, 1, 0.95])
+#
+# plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
+# if not os.path.exists(plotdir): os.makedirs(plotdir)
+# fig.suptitle(expid_str[:-1] + '  ' + plotstr)
+# save_fig_and_log(fig, plotstr, plotdir)
+# plt.close('all')

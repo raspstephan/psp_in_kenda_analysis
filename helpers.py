@@ -55,6 +55,7 @@ radarsufx = '-dwd---bin.nc'
 precsuf = '_15'
 precsuf_da = '_prec'
 gribpref = 'lfff'
+gribpref_da = 'lff'
 nens = 20
 nens_da = 40
 
@@ -93,13 +94,13 @@ def load_ens(datadir, date, t):
 
 
 def load_det_da(datadir, t):
-    detfn = datadir + gribpref + t + precsuf_da + '.det'
+    detfn = datadir + gribpref_da + t + precsuf_da + '.det'
     detfobj = getfobj(detfn, fieldn='TOT_PREC_S')
     return detfobj
 
 
 def load_ens_da(datadir, t):
-    gribfn = gribpref + t + precsuf_da
+    gribfn = gribpref_da + t + precsuf_da
     ensfobjlist = getfobj_ens(datadir, 'same', mems=nens, gribfn=gribfn,
                               fieldn='TOT_PREC_S', para=4)
     return ensfobjlist
