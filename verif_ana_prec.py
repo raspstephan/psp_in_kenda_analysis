@@ -16,7 +16,8 @@ from cosmo_utils.pywgrib import getfobj_ens, getfobj
 from cosmo_utils.diag import mean_spread_fieldobjlist
 from datetime import timedelta
 from scipy.stats import binned_statistic
-from helpers import save_fig_and_log, load_radar, load_det_da, load_ens_da
+from helpers import save_fig_and_log, load_radar, load_det_da, load_ens_da, \
+    set_plot
 
 from config import *
 
@@ -103,11 +104,9 @@ for ie, expid in enumerate(args.expid):
         print 'Save data: ', savefn
         np.save(savefn, (radarmean, detmean, detrmse, ensmean, ensspread))
 
-
     # Average if composite
     if args.composite:
         hourlist = [t.hour for t in timelist]
-        print hourlist
         hour_bins = np.arange(-0.5, 24.5, 1)
         radarmean = binned_statistic(hourlist, radarmean,
                                      bins=hour_bins)[0]
@@ -122,9 +121,79 @@ for ie, expid in enumerate(args.expid):
 
     exp_list.append([radarmean, detmean, detrmse, ensmean, ensspread])
 
-
 # Now the plotting...
+aspect = 0.75
+if args.composite:
+    x = np.unique(hourlist)
+    plotstr = 'comp_' + args.date_ana_start + '_' + args.date_ana_stop
+    fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
+    fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
+    for ie, expid in enumerate(args.expid):
+        if ie == 0:
+            ax1.plot(x, exp_list[ie][0],
+                     c='k', linewidth=2, label='Radar')
+        ax1.plot(x, exp_list[ie][1],
+                 c=cdict[expid], linewidth=1.5, label=expid)
+        ax1.plot(x, exp_list[ie][2],
+                 c=cdict[expid], linewidth=1.5, linestyle='--')
+        ax2.plot(x, exp_list[ie][3],
+                 c=cdict[expid], linewidth=1.5, label=expid)
+        ax2.plot(x, exp_list[ie][4],
+                 c=cdict[expid], linewidth=1.5, linestyle='--')
 
+    ax1.set_ylabel('Prec mean/rmse [mm/h]')
+    ax2.set_ylabel('Prec ens rmse/spread [mm/h]')
+    for ax in [ax1, ax2]:
+        set_plot(ax, 'Det fc ' + args.date_ana_start[:-4] + '-' +
+                 args.date_ana_stop[:-4], args, x)
+
+    plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
+    if not os.path.exists(plotdir): os.makedirs(plotdir)
+
+    save_fig_and_log(fig1, 'det_' + plotstr, plotdir)
+    save_fig_and_log(fig2, 'ens_' + plotstr, plotdir)
+    plt.close('all')
+
+else:
+    x = range(24)
+    # Get array indices
+    index_start = 0
+    index_stop = 24
+    daylist = make_timelist(tstart, tend, timedelta(hours=24))[:-1]
+    if tstart == tend:
+        daylist = [tstart]
+    for iday, day in enumerate(daylist):
+        date = yyyymmddhhmmss(day)
+        plotstr = date
+        fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
+        fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
+        for ie, expid in enumerate(args.expid):
+            if ie == 0:
+                ax1.plot(x, exp_list[ie][0][index_start:index_stop],
+                         c='k', linewidth=2, label='Radar')
+            ax1.plot(x, exp_list[ie][1][index_start:index_stop],
+                     c=cdict[expid], linewidth=1.5, label=expid)
+            ax1.plot(x, exp_list[ie][2][index_start:index_stop],
+                     c=cdict[expid], linewidth=1.5, linestyle='--')
+            ax2.plot(x, exp_list[ie][3][index_start:index_stop],
+                     c=cdict[expid], linewidth=1.5, label=expid)
+            ax2.plot(x, exp_list[ie][4][index_start:index_stop],
+                     c=cdict[expid], linewidth=1.5, linestyle='--')
+
+        ax1.set_ylabel('Prec mean/rmse [mm/h]')
+        ax2.set_ylabel('Prec ens rmse/spread [mm/h]')
+        for ax in [ax1, ax2]:
+            set_plot(ax, 'Det fc ' + date[:-4], args, x)
+
+        pd = plotdir + expid_str[:-1] + '/verif_ana_prec/'
+        if not os.path.exists(pd): os.makedirs(pd)
+
+        save_fig_and_log(fig1, 'det_' + plotstr, pd)
+        save_fig_and_log(fig2, 'ens_' + plotstr, pd)
+        plt.close('all')
+
+        index_start += 24
+        index_stop += 24
 #
 # a=b
 #     # Plot

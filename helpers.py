@@ -121,8 +121,12 @@ def set_plot(ax, title, args, hourlist_plot):
     ax.spines['top'].set_visible(False)
     ax.spines['left'].set_position(('outward', 3))
     ax.spines['bottom'].set_position(('outward', 3))
-    ax.set_xticks(range(args.hint + 1)[::6])
-    ax.set_xticklabels(hourlist_plot[::6])
-    ax.set_xlim(0, 24)
+    try:
+        ax.set_xticks(range(args.hint + 1)[::6])
+        ax.set_xticklabels(hourlist_plot[::6])
+        ax.set_xlim(0, 24)
+    except AttributeError:   # Must be DA plots
+        ax.set_xticks(range(24)[::6])
+        ax.set_xlim(0, 24)
     ax.set_title(title)
     plt.subplots_adjust(bottom=0.18, left=0.18, right=0.97)
