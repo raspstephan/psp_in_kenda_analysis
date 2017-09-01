@@ -18,9 +18,16 @@ from datetime import timedelta
 from scipy.stats import binned_statistic
 from helpers import save_fig_and_log, load_radar, load_det_da, load_ens_da, \
     set_plot
+from scipy.signal import convolve2d
 
 from config import *
 
+# Load radar tot mask
+totmask = np.load('./radar_tot_mask.npy')
+n = 21
+kernel = np.ones((n, n)) / float((n * n))
+
+# Arguments
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument('--expid', metavar='expid', type=str, nargs='+',
                     help='Experiment ID')
@@ -32,6 +39,11 @@ parser.add_argument('--composite',
                     dest='composite',
                     action='store_true',
                     help='Composite or individual plots.')
+parser.add_argument('--radar_thresh',
+                    type=float,
+                    default=100.,
+                    help='Radar values above threshold will be set to nan.'
+                         'Default = 100.')
 parser.set_defaults(composite=False)
 args = parser.parse_args()
 
@@ -72,7 +84,7 @@ for ie, expid in enumerate(args.expid):
         radarmean = []
         detmean = []
         detrmse = []
-        ensmean = []
+        ensrmse = []
         ensspread = []
         # Loop over time
         for t in timelist:
@@ -91,18 +103,37 @@ for ie, expid in enumerate(args.expid):
             detfobj = load_det_da(DATA_DIR, date_fg)
             ensfobjlist = load_ens_da(DATA_DIR, date_fg)
 
-            # Compute mean, spread and rmse
-            mask = radarfobj.mask  # True where NO data!
-            radarmean.append(np.mean(radarfobj.data[~mask]))
-            detmean.append(np.mean(detfobj.data[~mask]))
-            detrmse.append(np.sqrt(np.mean((radarfobj.data -
-                                            detfobj.data)[~mask] ** 2)))
-            ensmeanfobj, ensspreadfobj = mean_spread_fieldobjlist(ensfobjlist)
-            ensmean.append(np.mean(ensmeanfobj.data[~mask]))
-            ensspread.append(np.mean(ensspreadfobj.data[~mask]))
+            # Thresholding and upscaling
+            tmpmask = np.logical_or(totmask, radarfobj.data > args.radar_thresh)
+            nanradar = radarfobj.data
+            nanradar[tmpmask] = np.nan
+            convradar = convolve2d(nanradar, kernel, mode='same')
+            nandet = detfobj.data
+            nandet[tmpmask] = np.nan
+            convdet = convolve2d(nandet, kernel, mode='same')
+            convfieldlist = []
+            for ensfobj in ensfobjlist:
+                nanfield = ensfobj.data
+                nanfield[tmpmask] = np.nan
+                convfield = convolve2d(nanfield, kernel,
+                                       mode='same')
+                convfieldlist.append(convfield)
+            convfieldlist = np.array(convfieldlist)
+            meanfield = np.mean(convfieldlist, axis=0)
+
+            # Compute the statistics
+            detmean.append(np.nanmean(nandet))
+            detrmse.append(np.sqrt(np.nanmean((convradar - convdet) ** 2)))
+            ensspread.append(np.nanmean((np.std(convfieldlist, axis=0) /
+                                      meanfield)[meanfield >= 0.1]))
+            ensradarmean = 0.5 * (convradar + meanfield)
+            ensrmse.append(np.sqrt(
+                np.nanmean(((convradar - meanfield) ** 2 /
+                            (ensradarmean) ** 2)[
+                               ensradarmean >= 0.1])))
 
         print 'Save data: ', savefn
-        np.save(savefn, (radarmean, detmean, detrmse, ensmean, ensspread))
+        np.save(savefn, (radarmean, detmean, detrmse, ensrmse, ensspread))
 
     # Average if composite
     if args.composite:
@@ -142,7 +173,7 @@ if args.composite:
                  c=cdict[expid], linewidth=1.5, linestyle='--')
 
     ax1.set_ylabel('Prec mean/rmse [mm/h]')
-    ax2.set_ylabel('Prec ens rmse/spread [mm/h]')
+    ax2.set_ylabel('ens norm rmse/spread [mm/h]')
     for ax in [ax1, ax2]:
         set_plot(ax, 'Det fc ' + args.date_ana_start[:-4] + '-' +
                  args.date_ana_stop[:-4], args, x)
@@ -194,41 +225,3 @@ else:
 
         index_start += 24
         index_stop += 24
-#
-# a=b
-#     # Plot
-#     axarr[0].plot(range(radarmean.shape[0]), radarmean, c='k', linewidth=2)
-#     axarr[0].plot(range(radarmean.shape[0]), detmean, c=cdict[expid],
-#                   linewidth=2,
-#                   label=expid)
-#     axarr[0].plot(range(radarmean.shape[0]), ensmean, c=cdict[expid],
-#                   linewidth=2,
-#                   linestyle='--')
-#     axarr[1].plot(range(radarmean.shape[0]), detrmse, c=cdict[expid],
-#                   linewidth=2)
-#     axarr[1].plot(range(radarmean.shape[0]), ensspread, c=cdict[expid],
-#                   linewidth=2,
-#                   linestyle='--')
-#
-# # End expid loop
-#
-#
-# # Finish the plots
-# if args.composite == 'True':
-#     axarr[0].set_xlabel('time [UTC/h]')
-#     axarr[1].set_xlabel('time [UTC/h]')
-# else:
-#     axarr[0].set_xlabel('time from ' + yyyymmddhhmmss(tstart) + ' [h]')
-#     axarr[1].set_xlabel('time from ' + yyyymmddhhmmss(tstart) + ' [h]')
-# axarr[0].set_label('[mm/h]')
-# axarr[1].set_label('[mm/h]')
-# axarr[0].set_title('domain mean precipitation\n det (solid), ens (dashed)')
-# axarr[1].set_title('det rmse (solid) and ens spread (dashed)')
-# axarr[0].legend(loc=0, fontsize=6)
-# plt.tight_layout(rect=[0, 0.0, 1, 0.95])
-#
-# plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
-# if not os.path.exists(plotdir): os.makedirs(plotdir)
-# fig.suptitle(expid_str[:-1] + '  ' + plotstr)
-# save_fig_and_log(fig, plotstr, plotdir)
-# plt.close('all')
