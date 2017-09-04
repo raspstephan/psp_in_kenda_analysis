@@ -5,6 +5,7 @@ Stephan Rasp
 """
 # Imports
 import argparse
+import os
 import numpy as np
 from datetime import timedelta
 from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, make_timelist, \
@@ -182,7 +183,7 @@ for ie, expid in enumerate(args.expid):
                         )
                         rmse.append(np.sqrt(
                             np.nanmean(((convradar - meanfield) ** 2)[ensradarmean >= 0.1])) /
-                                        np.nan_mean(ensradarmean[
+                                        np.nanmean(ensradarmean[
                                            ensradarmean >= 0.1]))
             # save the data
             if args.ana == 'det':
@@ -228,7 +229,8 @@ for ie, expid in enumerate(args.expid):
 aspect = 0.75
 x = range(1, args.hint + 1)
 if args.composite:
-    plotstr = args.ana + '_comp_' + args.date_start + '_' + args.date_stop
+    plotstr = (args.ana + '_comp_' + args.date_start + '_' + args.date_stop + '_n_' +
+                   str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
     if args.no_radar:
         plotstr += '_no_radar'
     fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
@@ -276,7 +278,8 @@ if args.composite:
 else:
     for it, t in enumerate(timelist):
         date = yyyymmddhhmmss(t)
-        plotstr = args.ana + '_' + date
+        plotstr = (args.ana + '_' + date + '_n_' +
+                   str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
         if args.no_radar:
             plotstr += '_no_radar'
         fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
