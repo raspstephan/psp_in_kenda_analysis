@@ -107,21 +107,27 @@ for ie, expid in enumerate(args.expid):
                         '/' + date_store + '/')
 
             # Load relevant files
-            radarfobj = load_radar(date_ana)
-            detfobj = load_det_da(DATA_DIR, date_fg)
-            ensfobjlist = load_ens_da(DATA_DIR, date_fg)
+            try:
+                radardata = load_radar(date_ana, return_array=True)
+                detdata = load_det_da(DATA_DIR, date_fg, return_array=True)
+                ensdatalist = load_ens_da(DATA_DIR, date_fg, return_array=True)
+            except:
+                print 'Some file was not found, write nans.'
+                radardata = np.zeros((461, 421)) * np.nan
+                detdata = np.zeros((461, 421)) * np.nan
+                ensdatalist = [np.zeros((461, 421)) * np.nan for i in range(20)]
 
             # Thresholding and upscaling
-            tmpmask = np.logical_or(totmask, radarfobj.data > args.radar_thresh)
-            nanradar = radarfobj.data
+            tmpmask = np.logical_or(totmask, radardata > args.radar_thresh)
+            nanradar = radardata
             nanradar[tmpmask] = np.nan
             convradar = convolve2d(nanradar, kernel, mode='same')
-            nandet = detfobj.data
+            nandet = detdata
             nandet[tmpmask] = np.nan
             convdet = convolve2d(nandet, kernel, mode='same')
             convfieldlist = []
-            for ensfobj in ensfobjlist:
-                nanfield = ensfobj.data
+            for ensdata in ensdatalist:
+                nanfield = ensdata
                 nanfield[tmpmask] = np.nan
                 convfield = convolve2d(nanfield, kernel,
                                        mode='same')

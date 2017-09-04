@@ -61,7 +61,7 @@ nens_da = 40
 
 
 # Define loading functions
-def load_det(datadir, date, t):
+def load_det(datadir, date, t, return_array=False):
     topdir = datadir + '/' + date + '/'
     gribfn = gribpref + t + precsuf
     detfn = topdir + 'det/' + gribfn
@@ -72,38 +72,52 @@ def load_det(datadir, date, t):
     # detfnm1 = topdir + 'det/' + gribfnm1
     # detfobjm1 = getfobj(detfnm1, fieldn = 'TOT_PREC')
     # detfobj.data = detfobj.data - detfobjm1.data
-    return detfobj
+    if return_array:
+        return detfobj.data
+    else:
+        return detfobj
 
 
-def load_radar(date, t='00000000'):
+def load_radar(date, t='00000000', return_array=False):
     dateobj = (yyyymmddhhmmss_strtotime(date) + ddhhmmss_strtotime(t))
     radardt = timedelta(minutes=10)  # TODO Is this correct???
     radardateobj = dateobj - radardt
     radarfn = radardir + radarpref + yymmddhhmm(radardateobj) + radarsufx
     radarfobj = getfobj_ncdf(radarfn, fieldn='pr', dwdradar=True)
-    return radarfobj
+    if return_array:
+        return radarfobj.data
+    else:
+        return radarfobj
 
 
-def load_ens(datadir, date, t):
+def load_ens(datadir, date, t, return_array=False):
     topdir = datadir + '/' + date + '/'
     gribfn = gribpref + t + precsuf
     ensfobjlist = getfobj_ens(topdir, 'sub', mems=nens, gribfn=gribfn,
                               dir_prefix='ens', fieldn='PREC_PERHOUR',
                               para=4)
-    return ensfobjlist
+    if return_array:
+        return [fobj.data for fobj in ensfobjlist]
+    else:
+        return ensfobjlist
 
 
-def load_det_da(datadir, t):
+def load_det_da(datadir, t, return_array=False):
     detfn = datadir + gribpref_da + t + precsuf_da + '.det'
     detfobj = getfobj(detfn, fieldn='TOT_PREC_S')
-    return detfobj
+    if return_array:
+        return detfobj.data
+    else:
+        return detfobj
 
-
-def load_ens_da(datadir, t):
+def load_ens_da(datadir, t, return_array=False):
     gribfn = gribpref_da + t + precsuf_da
     ensfobjlist = getfobj_ens(datadir, 'same', mems=nens, gribfn=gribfn,
                               fieldn='TOT_PREC_S', para=4)
-    return ensfobjlist
+    if return_array:
+        return [fobj.data for fobj in ensfobjlist]
+    else:
+        return ensfobjlist
 
 
 def strip_expid(expid):
