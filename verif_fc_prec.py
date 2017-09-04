@@ -41,6 +41,14 @@ parser.add_argument('--hint', metavar='hint', type=int, default=24,
                     help='Maximum forecast lead time')
 parser.add_argument('--ana', metavar='ana', type=str,
                     help='Type of analysis to be done [det or ens]')
+parser.add_argument('--ens_norm_type',
+                    type=int,
+                    default=1,
+                    help='Type of ensemble normalization. 1 or 2.')
+parser.add_argument('--n_kernel',
+                    type=int,
+                    default=21,
+                    help='Width of convolution kernel. Default=21')
 parser.add_argument('--composite',
                     dest='composite',
                     action='store_true',
@@ -67,8 +75,9 @@ hourlist_plot = []
 for i in range(args.hint + 1):
     hourlist_plot.append(str((tstart + timedelta(hours=i)).hour))
 
-n = 21
-kernel = np.ones((n, n)) / float((n * n))
+assert args.n_kernel % 2 == 1, 'n_kernel must be odd'
+kernel = (np.ones((args.n_kernel, args.n_kernel)) /
+          float((args.n_kernel * args.n_kernel)))
 
 
 expid_str = ''
@@ -95,7 +104,8 @@ for ie, expid in enumerate(args.expid):
     for t in timelist:
         print t
         date = yyyymmddhhmmss(t)
-        savestr = args.ana + '_' + expid + '_' + date
+        savestr = (args.ana + '_' + expid + '_' + date + '_n_' +
+                   str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
         savefn = savedir + savestr + '.npy'
         print 'Try to load pre-saved data:', savefn
         if os.path.exists(savefn):
@@ -156,14 +166,24 @@ for ie, expid in enumerate(args.expid):
                         convfieldlist.append(convfield)
                     convfieldlist = np.array(convfieldlist)
                     meanfield = np.mean(convfieldlist, axis=0)
-                    spread.append(np.nanmean((np.std(convfieldlist, axis=0) /
-                                         meanfield)[meanfield >= 0.1]))
                     ensradarmean = 0.5 * (convradar + meanfield)
-                    rmse.append(np.sqrt(
-                        np.nanmean(((convradar - meanfield) ** 2 /
-                                    (ensradarmean) ** 2)[
-                                       ensradarmean >= 0.1])))
+                    if args.ens_norm_type == 1:
+                        spread.append(np.nanmean((np.std(convfieldlist, axis=0) /
+                                             meanfield)[meanfield >= 0.1]))
 
+                        rmse.append(np.sqrt(
+                            np.nanmean(((convradar - meanfield) ** 2 /
+                                        (ensradarmean) ** 2)[
+                                           ensradarmean >= 0.1])))
+                    else:
+                        spread.append(
+                            np.nanmean(np.std(convfieldlist, axis=0)[meanfield >= 0.1]) /
+                                        np.nanmean(meanfield[meanfield >= 0.1])
+                        )
+                        rmse.append(np.sqrt(
+                            np.nanmean(((convradar - meanfield) ** 2)[ensradarmean >= 0.1])) /
+                                        np.nan_mean(ensradarmean[
+                                           ensradarmean >= 0.1]))
             # save the data
             if args.ana == 'det':
                 print 'Save data: ', savefn
