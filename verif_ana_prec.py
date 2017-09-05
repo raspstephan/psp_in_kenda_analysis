@@ -17,7 +17,7 @@ from cosmo_utils.diag import mean_spread_fieldobjlist
 from datetime import timedelta
 from scipy.stats import binned_statistic
 from helpers import save_fig_and_log, load_radar, load_det_da, load_ens_da, \
-    set_plot
+    set_plot, compute_ens_stats
 from scipy.signal import convolve2d
 
 from config import *
@@ -49,6 +49,11 @@ parser.add_argument('--n_kernel',
                     type=int,
                     default=21,
                     help='Width of convolution kernel. Default=21')
+parser.add_argument('--ens_norm_type',
+                    type=int,
+                    default=1,
+                    help='Type of ensemble normalization. '
+                         '0 (no normalization), 1 or 2.')
 args = parser.parse_args()
 
 assert args.n_kernel % 2 == 1, 'n_kernel must be odd'
@@ -80,7 +85,8 @@ for ie, expid in enumerate(args.expid):
     if not os.path.exists(savedir): os.makedirs(savedir)
 
     savefn = (savedir + expid + '_' + args.date_ana_start + '_' +
-              args.date_ana_stop + '_n_' + str(args.n_kernel) + '_.npy')
+              args.date_ana_stop + '_n_' + str(args.n_kernel) + '_norm_' +
+              str(args.ens_norm_type) + '_.npy')
     print 'Try to load pre-saved data:', savefn
     if os.path.exists(savefn):
         print 'Found pre-saved data.'
@@ -133,19 +139,16 @@ for ie, expid in enumerate(args.expid):
                                        mode='same')
                 convfieldlist.append(convfield)
             convfieldlist = np.array(convfieldlist)
-            meanfield = np.mean(convfieldlist, axis=0)
 
             # Compute the statistics
             radarmean.append(np.nanmean(nanradar))
             detmean.append(np.nanmean(nandet))
             detrmse.append(np.sqrt(np.nanmean((convradar - convdet) ** 2)))
-            ensspread.append(np.nanmean((np.std(convfieldlist, axis=0) /
-                                      meanfield)[meanfield >= 0.1]))
-            ensradarmean = 0.5 * (convradar + meanfield)
-            ensrmse.append(np.sqrt(
-                np.nanmean(((convradar - meanfield) ** 2 /
-                            (ensradarmean) ** 2)[
-                               ensradarmean >= 0.1])))
+            s, r = compute_ens_stats(convradar, convfieldlist,
+                                     args.ens_norm_type,
+                                     norm_thresh=0.1)
+            ensspread.append(s)
+            ensrmse.append(r)
 
         print 'Save data: ', savefn
         np.save(savefn, (radarmean, detmean, detrmse, ensrmse, ensspread))
@@ -155,15 +158,15 @@ for ie, expid in enumerate(args.expid):
         hourlist = [t.hour for t in timelist]
         hour_bins = np.arange(-0.5, 24.5, 1)
         radarmean = binned_statistic(hourlist, radarmean,
-                                     bins=hour_bins)[0]
+                                     bins=hour_bins, statistic=np.nanmean)[0]
         detmean = binned_statistic(hourlist, detmean,
-                                   bins=hour_bins)[0]
+                                   bins=hour_bins, statistic=np.nanmean)[0]
         detrmse = binned_statistic(hourlist, detrmse,
-                                   bins=hour_bins)[0]
+                                   bins=hour_bins, statistic=np.nanmean)[0]
         ensrmse = binned_statistic(hourlist, ensrmse,
-                                   bins=hour_bins)[0]
+                                   bins=hour_bins, statistic=np.nanmean)[0]
         ensspread = binned_statistic(hourlist, ensspread,
-                                     bins=hour_bins)[0]
+                                     bins=hour_bins, statistic=np.nanmean)[0]
 
     exp_list.append([radarmean, detmean, detrmse, ensrmse, ensspread])
 
@@ -191,7 +194,7 @@ if args.composite:
     ax1.set_ylabel('Prec mean/rmse [mm/h]')
     ax2.set_ylabel('ens norm rmse/spread [mm/h]')
     for ax in [ax1, ax2]:
-        set_plot(ax, 'Det fc ' + args.date_ana_start[:-4] + '-' +
+        set_plot(ax, args.date_ana_start[:-4] + '-' +
                  args.date_ana_stop[:-4], args, x)
 
     plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
@@ -231,7 +234,7 @@ else:
         ax1.set_ylabel('Prec mean/rmse [mm/h]')
         ax2.set_ylabel('ens norm rmse/spread [mm/h]')
         for ax in [ax1, ax2]:
-            set_plot(ax, 'Det fc ' + date[:-4], args, x)
+            set_plot(ax, date[:-4], args, x)
 
         pd = plotdir + expid_str[:-1] + '/verif_ana_prec/'
         if not os.path.exists(pd): os.makedirs(pd)

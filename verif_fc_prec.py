@@ -15,7 +15,7 @@ import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
 from cosmo_utils.scores.probab import FSS
 from helpers import save_fig_and_log, load_det, load_radar, load_ens, \
-    strip_expid, set_plot
+    strip_expid, set_plot, compute_ens_stats
 from config import *  # Import config file
 
 # Load radar tot mask
@@ -45,7 +45,8 @@ parser.add_argument('--ana', metavar='ana', type=str,
 parser.add_argument('--ens_norm_type',
                     type=int,
                     default=1,
-                    help='Type of ensemble normalization. 1 or 2.')
+                    help='Type of ensemble normalization. '
+                         '0 (no normalization), 1 or 2.')
 parser.add_argument('--n_kernel',
                     type=int,
                     default=21,
@@ -166,25 +167,12 @@ for ie, expid in enumerate(args.expid):
                                                mode='same')
                         convfieldlist.append(convfield)
                     convfieldlist = np.array(convfieldlist)
-                    meanfield = np.mean(convfieldlist, axis=0)
-                    ensradarmean = 0.5 * (convradar + meanfield)
-                    if args.ens_norm_type == 1:
-                        spread.append(np.nanmean((np.std(convfieldlist, axis=0) /
-                                             meanfield)[meanfield >= 0.1]))
+                    s, r = compute_ens_stats(convradar, convfieldlist,
+                                             args.ens_norm_type,
+                                             norm_thresh=0.1)
+                    spread.append(s)
+                    rmse.append(r)
 
-                        rmse.append(np.sqrt(
-                            np.nanmean(((convradar - meanfield) ** 2 /
-                                        (ensradarmean) ** 2)[
-                                           ensradarmean >= 0.1])))
-                    else:
-                        spread.append(
-                            np.nanmean(np.std(convfieldlist, axis=0)[meanfield >= 0.1]) /
-                                        np.nanmean(meanfield[meanfield >= 0.1])
-                        )
-                        rmse.append(np.sqrt(
-                            np.nanmean(((convradar - meanfield) ** 2)[ensradarmean >= 0.1])) /
-                                        np.nanmean(ensradarmean[
-                                           ensradarmean >= 0.1]))
             # save the data
             if args.ana == 'det':
                 print 'Save data: ', savefn
