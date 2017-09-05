@@ -147,7 +147,7 @@ def set_plot(ax, title, args, hourlist_plot):
 
 
 def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
-                      norm_thresh = 0.1):
+                      norm_thresh=0.1):
     """
     Compute spread and rmse of ensemble with given normalization type.
     0: no normalization
@@ -157,16 +157,17 @@ def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
     meanfield = np.mean(convfieldlist, axis=0)
     ensradarmean = 0.5 * (convradar + meanfield)
     if ens_norm_type == 0:  # No normalization
-        spread = np.nanmean(np.std(convfieldlist, axis=0))
+        spread = np.nanmean(np.std(convfieldlist, axis=0, ddof=1))
         rmse = np.sqrt(np.nanmean((convradar - meanfield) ** 2))
     elif ens_norm_type == 1:   # Grid point normalization
-        spread = np.nanmean((np.std(convfieldlist, axis=0) /
+        spread = np.nanmean((np.std(convfieldlist, axis=0, ddof=1) /
                              meanfield)[meanfield >= norm_thresh])
         rmse = np.sqrt(np.nanmean(((convradar - meanfield) ** 2 /
                                    ensradarmean ** 2)[ensradarmean >= 0.1]))
 
     elif ens_norm_type == 2:   # Domain normalization
-        spread = (np.nanmean(np.std(convfieldlist, axis=0)[meanfield >= 0.1]) /
+        spread = (np.nanmean(np.std(convfieldlist, axis=0, ddof=1)
+                             [meanfield >= 0.1]) /
                   np.nanmean(meanfield[meanfield >= 0.1]))
         rmse = (np.sqrt(np.nanmean(((convradar - meanfield) ** 2)
                                     [ensradarmean >= 0.1])) /

@@ -175,7 +175,7 @@ aspect = 0.75
 if args.composite:
     x = np.unique(hourlist)
     plotstr = ('comp_' + args.date_ana_start + '_' + args.date_ana_stop +
-               '_n_' + str(args.n_kernel))
+               '_n_' + str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
     fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
     fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
     for ie, expid in enumerate(args.expid):
@@ -214,7 +214,8 @@ else:
         daylist = [tstart]
     for iday, day in enumerate(daylist):
         date = yyyymmddhhmmss(day)
-        plotstr = date + '_n_' + str(args.n_kernel)
+        plotstr = (date + '_n_' + str(args.n_kernel) + '_norm_' +
+                   str(args.ens_norm_type))
         fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
         fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
         for ie, expid in enumerate(args.expid):
