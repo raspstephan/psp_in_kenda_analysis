@@ -13,6 +13,7 @@ from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, make_timelist, \
     yyyymmddhhmmss
 from scipy.stats import binned_statistic
 import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
@@ -21,38 +22,37 @@ from helpers import save_fig_and_log
 from config import *
 
 # Arguments
-parser = argparse.ArgumentParser(description = 'Process input')
-parser.add_argument('--expid', metavar = 'expid', type=str, nargs = '+',
-                    help = 'Experiment ID')
-parser.add_argument('--ver_int_start', metavar = 'ver_int_start', type=int, 
-                    default = 0, 
-                    help = 'Start of verification interval (h from fc start)')
-parser.add_argument('--ver_int_stop', metavar = 'ver_int_stop', type=int, 
-                    default = 24, 
-                    help = 'End of verification interval (h from fc start)')
-parser.add_argument('--date_start', metavar = 'date_start', type=str,
-                    default = '20160525000000', help = 'Start date for date loop (yyyymmddhhmmss)')
-parser.add_argument('--date_stop', metavar = 'date_stop', type=str,
-                    default = '20160610000000', 
-                    help = 'End date for date loop (yyyymmddhhmmss)')
-parser.add_argument('--date_inc', metavar = 'date_inc', type=int, 
-                    default = '24', 
-                    help = 'Time increment between forecasts (h)')
-parser.add_argument('--var', metavar = 'var', type=str, default = 'T')
-parser.add_argument('--obs', metavar = 'obs', type=str, default = 'TEMP')
-parser.add_argument('--hint', metavar = 'hint', type=int, default =24,
-                    help = 'Maximum forecast lead time')
+parser = argparse.ArgumentParser(description='Process input')
+parser.add_argument('--expid', metavar='expid', type=str, nargs='+',
+                    help='Experiment ID')
+parser.add_argument('--ver_int_start', metavar='ver_int_start', type=int,
+                    default=0,
+                    help='Start of verification interval (h from fc start)')
+parser.add_argument('--ver_int_stop', metavar='ver_int_stop', type=int,
+                    default=24,
+                    help='End of verification interval (h from fc start)')
+parser.add_argument('--date_start', metavar='date_start', type=str,
+                    default='20160525000000', help='Start date for date '
+                                                   'loop (yyyymmddhhmmss)')
+parser.add_argument('--date_stop', metavar='date_stop', type=str,
+                    default='20160610000000',
+                    help='End date for date loop (yyyymmddhhmmss)')
+parser.add_argument('--date_inc', metavar='date_inc', type=int,
+                    default='24',
+                    help='Time increment between forecasts (h)')
+parser.add_argument('--var', metavar='var', type=str, default='T')
+parser.add_argument('--obs', metavar='obs', type=str, default='TEMP')
+parser.add_argument('--hint', metavar='hint', type=int, default=24,
+                    help='Maximum forecast lead time')
 args = parser.parse_args()
 
-
 if args.obs in ['TEMP', 'AIREP']:
-    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' + 
-               args.date_stop + '_' + str(args.ver_int_start) + '_' + 
+    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' +
+               args.date_stop + '_' + str(args.ver_int_start) + '_' +
                str(args.ver_int_stop))
 if args.obs == 'SYNOP':
-    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' + 
+    plotstr = (args.obs + '_' + args.var + '_' + args.date_start + '_' +
                args.date_stop)
-
 
 # Loop over time
 tstart = yyyymmddhhmmss_strtotime(args.date_start)
@@ -65,39 +65,39 @@ else:
 
 # Set up figure
 if args.obs == 'SYNOP':
-    fig, ax = plt.subplots(1, 1, figsize = (7, 5))
+    fig, ax = plt.subplots(1, 1, figsize=(7, 5))
     unitdict = {'T2M': 'K', 'RH2M': '%', 'PS': 'Pa'}
+    bin_edges = np.arange(0, (args.hint + 1) * 60, 60)  # Hourly bins
 
 if args.obs in ['TEMP', 'AIREP']:
-    #fig1, axarr1 = plt.subplots(1, 2, figsize = (5, 7))
-    fig1 = plt.figure(figsize = (5,5))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4]) 
+    # fig1, axarr1 = plt.subplots(1, 2, figsize = (5, 7))
+    fig1 = plt.figure(figsize=(5, 5))
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4])
     axarr1 = [plt.subplot(gs[0]), plt.subplot(gs[1])]
-    fig2 = plt.figure(figsize = (5,5))
-    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4]) 
+    fig2 = plt.figure(figsize=(5, 5))
+    gs = gridspec.GridSpec(1, 2, width_ratios=[1, 4])
     axarr2 = [plt.subplot(gs[0]), plt.subplot(gs[1])]
-    #fig2, axarr2 = plt.subplots(1, 2, figsize = (5, 7))
+    # fig2, axarr2 = plt.subplots(1, 2, figsize = (5, 7))
     unitdict = {'T': 'K', 'RH': '%'}
-    rmselimdict = {'T': (0,3), 'RH': (0, 40)}
-    biaslimdict = {'T': (-1.5,1.5), 'RH': (-15,15)}
+    rmselimdict = {'T': (0, 3), 'RH': (0, 40)}
+    biaslimdict = {'T': (-1.5, 1.5), 'RH': (-15, 15)}
 
     if args.obs == 'TEMP':
         binwidth = 50
-        bin_edges = np.arange(200, 1000+binwidth, binwidth) * 100. # Pa
-        meanlev = (bin_edges[1:] + bin_edges[:-1])/2./100.  # hPa
+        bin_edges = np.arange(200, 1000 + binwidth, binwidth) * 100.  # Pa
+        meanlev = (bin_edges[1:] + bin_edges[:-1]) / 2. / 100.  # hPa
     if args.obs == 'AIREP':
         binwidth = 250
-        bin_edges = np.arange(0, 10000 + binwidth, binwidth) # m
-        meanlev = (bin_edges[1:] + bin_edges[:-1])/2.  # m
+        bin_edges = np.arange(0, 10000 + binwidth, binwidth)  # m
+        meanlev = (bin_edges[1:] + bin_edges[:-1]) / 2.  # m
 
 
 expid_str = ''
 for ie, expid in enumerate(args.expid):
     print 'expid = ', expid
     expid_str += expid + '_'
-    DATA_DIR = datadirdict[expid] + expid
-    
-    
+    DATA_DIR = datadir + expid
+
     # Check if saved data is available
     savedir = savedir_base + expid + '/verif_fc/'
     if not os.path.exists(savedir): os.makedirs(savedir)
@@ -107,18 +107,18 @@ for ie, expid in enumerate(args.expid):
         print 'Found pre-saved data.'
         mean_bias, rmse, count = np.load(savefn)
     else:
-        obs_time = []   # in mins relative to obs_date
+        obs_time = []  # in mins relative to obs_date
         obs = []
         verif = []
         bias = []
-        obs_date = []   # datetime object
-        obs_lev = []    # in Pa
+        obs_date = []  # datetime object
+        obs_lev = []  # in Pa
         for t in timelist:
             print t
             # Load fof file
 
-            foffn = (DATA_DIR + '/' + yyyymmddhhmmss(t) + '/det/fof_' +  
-                    yyyymmddhhmmss(t) + '.nc')
+            foffn = (DATA_DIR + '/' + yyyymmddhhmmss(t) + '/det/fof_' +
+                     yyyymmddhhmmss(t) + '.nc')
             print foffn
             fof = fdbkfile(foffn)
             var_tab = fof.table_varno
@@ -126,9 +126,9 @@ for ie, expid in enumerate(args.expid):
             # print var_tab, obs_tab
             varno = var_tab[args.var]
             obsno = obs_tab[args.obs]
-            if fof.fb_times()[-1]/60. > 24.:
+            if fof.fb_times()[-1] / 60. > 24.:
                 hint = 48
-            
+
             # Get temp data, T
             try:
                 ov = fof.obs_veri(varno=varno, obstype=obsno)
@@ -137,7 +137,7 @@ for ie, expid in enumerate(args.expid):
                 continue
             hdr_inds = ov['hdr_inds']
             hdr_unique = np.unique(hdr_inds)  # Get unique obs labels 
-            
+
             if args.obs in ['TEMP', 'AIREP']:
                 obs_time.extend(ov['time'])
                 obs.extend(ov['obs'])
@@ -154,9 +154,9 @@ for ie, expid in enumerate(args.expid):
             else:
                 raise Exception
         # End timeloop
-    
+
         # Save data 
-        if args.obs in ['TEMP', 'AIREP']: 
+        if args.obs in ['TEMP', 'AIREP']:
             print 'Total number of observations:', len(obs)
 
             # Height bin the data
@@ -164,77 +164,77 @@ for ie, expid in enumerate(args.expid):
             obs_lev = np.array(obs_lev)
             obs_time = np.array(obs_time)
             obs_lev = np.array(obs_lev)
-            mask = (obs_time >= args.ver_int_start*60.) & (obs_time <= 
-                                                        args.ver_int_stop*60.)
+            mask = (obs_time >= args.ver_int_start * 60.) & (obs_time <=
+                                                             args.ver_int_stop *
+                                                             60.)
             print 'Number of verif-observations:', np.sum(mask)
-            count = binned_statistic(obs_lev[mask], bias[mask], 
-                                        bins = bin_edges, 
-                                        statistic = 'count')[0]
-            
-            mean_bias = binned_statistic(obs_lev[mask], bias[mask], 
-                                        bins = bin_edges)[0]
-            rmse = np.sqrt(binned_statistic(obs_lev[mask], np.array(bias[mask])**2, 
-                                            bins = bin_edges)[0])
-            if args.var == 'RH':   # convert to percent
+            count = binned_statistic(obs_lev[mask], bias[mask],
+                                     bins=bin_edges,
+                                     statistic='count')[0]
+
+            mean_bias = binned_statistic(obs_lev[mask], bias[mask],
+                                         bins=bin_edges)[0]
+            rmse = np.sqrt(
+                binned_statistic(obs_lev[mask], np.array(bias[mask]) ** 2,
+                                 bins=bin_edges)[0])
+            if args.var == 'RH':  # convert to percent
                 mean_bias *= 100.
                 rmse *= 100.
             np.save(savefn, (mean_bias, rmse, count))
-            
+
         if args.obs == 'SYNOP':
             print 'Total number of observations:', len(obs)
 
-            bin_edges = np.arange(0, (args.hint+1)*60, 60)   # Hourly bins
-            time_hist = np.histogram(obs_time, bins = bin_edges)
-            mean_bias = binned_statistic(obs_time, bias, bins = bin_edges)[0]
-            rmse = np.sqrt(binned_statistic(obs_time, np.array(bias)**2, 
-                                            bins = bin_edges)[0])
+            bin_edges = np.arange(0, (args.hint + 1) * 60, 60)  # Hourly bins
+            time_hist = np.histogram(obs_time, bins=bin_edges)
+            mean_bias = binned_statistic(obs_time, bias, bins=bin_edges)[0]
+            rmse = np.sqrt(binned_statistic(obs_time, np.array(bias) ** 2,
+                                            bins=bin_edges)[0])
             np.save(savefn, (mean_bias, rmse, None))
-    
-    
+
     # Plot data for each expid 
 
-    if args.obs in ['TEMP', 'AIREP']: 
+    if args.obs in ['TEMP', 'AIREP']:
         # Plot 
-        axarr1[0].barh(meanlev, count, height = binwidth, color = 'gray', 
-                       linewidth = 0)
-        axarr2[0].barh(meanlev, count, height = binwidth, color = 'gray', 
-                       linewidth = 0)
-        axarr1[1].plot(rmse, meanlev, c = cdict[expid], linewidth = 2,
-                 label = strip_expid(expid))
-        axarr2[1].plot(mean_bias, meanlev, c = cdict[expid], linewidth = 2,
-                      label = strip_expid(expid))
-        
+        axarr1[0].barh(meanlev, count, height=binwidth, color='gray',
+                       linewidth=0)
+        axarr2[0].barh(meanlev, count, height=binwidth, color='gray',
+                       linewidth=0)
+        axarr1[1].plot(rmse, meanlev, c=cdict[expid], linewidth=2,
+                       label=expid)
+        axarr2[1].plot(mean_bias, meanlev, c=cdict[expid], linewidth=2,
+                       label=expid)
+
     if args.obs == 'SYNOP':
         time_plot = bin_edges[:-1] / 60
-        ax.plot(time_plot, mean_bias, linewidth = 2, c = cdict[expid], 
-                label = strip_expid(expid), linestyle = ':')
-        ax.plot(time_plot, rmse, linewidth = 2, c = cdict[expid], 
-                linestyle = '-')
-        
+        ax.plot(time_plot, mean_bias, linewidth=2, c=cdict[expid],
+                label=expid, linestyle=':')
+        ax.plot(time_plot, rmse, linewidth=2, c=cdict[expid],
+                linestyle='-')
+
 # Finish the plots
-plotdir = plotdir + expid_str[:-1] + '/verif_fof/'
+plotdir = plotdir + expid_str[:-1] + '/verif_fc/'
 if not os.path.exists(plotdir): os.makedirs(plotdir)
 if args.obs in ['TEMP', 'AIREP']:
-    
-    
+
     axarr1[1].set_xlim(rmselimdict[args.var])
-    axarr1[1].set_ylim(0,np.max(meanlev))
-    axarr1[1].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] +  ']')
-    #axarr1[1].set_title('RMSE ' + args.var)
-    axarr1[1].legend(loc = 0, fontsize = 8, frameon = False)
-    
-    axarr2[1].axvline(0 ,c = 'lightgray', zorder = 0.1)
+    axarr1[1].set_ylim(0, np.max(meanlev))
+    axarr1[1].set_xlabel(args.var + ' RMSE [' + unitdict[args.var] + ']')
+    # axarr1[1].set_title('RMSE ' + args.var)
+    axarr1[1].legend(loc=0, fontsize=8, frameon=False)
+
+    axarr2[1].axvline(0, c='lightgray', zorder=0.1)
     axarr2[1].set_xlim(biaslimdict[args.var])
-    axarr2[1].set_ylim(0,np.max(meanlev))
-    axarr2[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] +  ']')
-    #axarr2[1].set_title('Bias ' + args.var)
-    axarr2[1].legend(loc = 0, fontsize = 8, frameon = False)
-    
+    axarr2[1].set_ylim(0, np.max(meanlev))
+    axarr2[1].set_xlabel(args.var + ' BIAS [' + unitdict[args.var] + ']')
+    # axarr2[1].set_title('Bias ' + args.var)
+    axarr2[1].legend(loc=0, fontsize=8, frameon=False)
+
     axarr1[0].set_xlabel('# Obs')
     axarr2[0].set_xlabel('# Obs')
-    #axarr1[1].set_title('RMSE')
-    #axarr2[1].set_title('BIAS')
-    
+    # axarr1[1].set_title('RMSE')
+    # axarr2[1].set_title('BIAS')
+
     for axarr in [axarr1, axarr2]:
         plt.sca(axarr[0])
         axarr[0].spines['top'].set_visible(False)
@@ -246,9 +246,9 @@ if args.obs in ['TEMP', 'AIREP']:
         axarr[0].spines['bottom'].set_position(('outward', 10))
         axarr[1].spines['bottom'].set_position(('outward', 10))
         axarr[1].yaxis.set_ticks([])
-        
+
         plt.tight_layout(rect=[0, 0.0, 1, 0.97])
-    
+
     if args.obs == 'TEMP':
         axarr1[0].set_ylabel('Pressure [hPa]')
         axarr2[0].set_ylabel('Pressure [hPa]')
@@ -267,32 +267,26 @@ if args.obs in ['TEMP', 'AIREP']:
         axarr1[1].set_ylim(0, 10000)
         axarr2[0].set_ylim(0, 10000)
         axarr2[1].set_ylim(0, 10000)
-        
+
     for axarr in [axarr1, axarr2]:
         plt.sca(axarr[0])
         plt.tight_layout(rect=[0, 0.0, 1, 0.97])
-        
-    
-    
-    fig1.suptitle(args.obs + ' ' + args.var + ' RMSE', fontsize = 10)
-    fig2.suptitle(args.obs + ' ' + args.var + ' BIAS', fontsize = 10)
+
+    fig1.suptitle(args.obs + ' ' + args.var + ' RMSE', fontsize=10)
+    fig2.suptitle(args.obs + ' ' + args.var + ' BIAS', fontsize=10)
 
     save_fig_and_log(fig1, 'rmse_' + plotstr, plotdir)
     save_fig_and_log(fig2, 'bias_' + plotstr, plotdir)
 
     plt.close('all')
 
-
 if args.obs == 'SYNOP':
     ax.set_xlabel('time')
-    ax.set_ylabel(args.var + ' [' + unitdict[args.var] +  ']' )
-    ax.legend(loc = 0, fontsize = 8)
-    ax.axhline(y=0, zorder = 0.1, c = 'gray')
+    ax.set_ylabel(args.var + ' [' + unitdict[args.var] + ']')
+    ax.legend(loc=0, fontsize=8)
+    ax.axhline(y=0, zorder=0.1, c='gray')
 
     ax.set_title(plotstr + '\n RMSE (solid), Bias (dotted)')
     plt.tight_layout()
     save_fig_and_log(fig, plotstr, plotdir)
     plt.close('all')
-
-
-        
