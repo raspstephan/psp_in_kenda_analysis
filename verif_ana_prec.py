@@ -92,14 +92,18 @@ for ie, expid in enumerate(args.expid):
         print 'Found pre-saved data.'
         # These objects are lists containing the hourly mean values
         # Corresponding to timelist. For each expid!
-        radarmean, detmean, detrmse, ensrmse, ensspread = np.load(savefn)
+        radarmean, detmean, detrmse, ensrmse, ensrmv, ensbs, ensmean, \
+            ensmean_std = np.load(savefn)
     else:
         print 'Did not find pre-saved data, compute!'
         radarmean = []
         detmean = []
         detrmse = []
         ensrmse = []
-        ensspread = []
+        ensrmv = []
+        ensbs = []
+        ensmean = []
+        ensmean_std = []
         # Loop over time
         for t in timelist:
             # Determine 3hrly storage time
@@ -144,14 +148,18 @@ for ie, expid in enumerate(args.expid):
             radarmean.append(np.nanmean(nanradar))
             detmean.append(np.nanmean(nandet))
             detrmse.append(np.sqrt(np.nanmean((convradar - convdet) ** 2)))
-            s, r = compute_ens_stats(convradar, convfieldlist,
+            r = compute_ens_stats(convradar, convfieldlist,
                                      args.ens_norm_type,
                                      norm_thresh=0.1)
-            ensspread.append(s)
-            ensrmse.append(r)
+            ensrmse.append(r[0])
+            ensrmv.append(r[1])
+            ensbs.append(r[2])
+            ensmean.append(r[3])
+            ensmean_std.append(r[4])
 
         print 'Save data: ', savefn
-        np.save(savefn, (radarmean, detmean, detrmse, ensrmse, ensspread))
+        np.save(savefn, (radarmean, detmean, detrmse, ensrmse, ensrmv,
+                         ensbs, ensmean, ensmean_std))
 
     # Average if composite
     if args.composite:
@@ -165,10 +173,17 @@ for ie, expid in enumerate(args.expid):
                                    bins=hour_bins, statistic=np.nanmean)[0]
         ensrmse = binned_statistic(hourlist, ensrmse,
                                    bins=hour_bins, statistic=np.nanmean)[0]
-        ensspread = binned_statistic(hourlist, ensspread,
+        ensrmv = binned_statistic(hourlist, ensrmv,
                                      bins=hour_bins, statistic=np.nanmean)[0]
+        ensbs = binned_statistic(hourlist, ensbs,
+                                     bins=hour_bins, statistic=np.nanmean)[0]
+        ensmean = binned_statistic(hourlist, ensmean,
+                                     bins=hour_bins, statistic=np.nanmean)[0]
+        ensmean_std = binned_statistic(hourlist, ensmean_std,
+                                   bins=hour_bins, statistic=np.nanmean)[0]
 
-    exp_list.append([radarmean, detmean, detrmse, ensrmse, ensspread])
+    exp_list.append([radarmean, detmean, detrmse, ensrmse, ensrmv,
+                     ensbs, ensmean, ensmean_std])
 
 # Now the plotting...
 aspect = 0.75
@@ -177,7 +192,7 @@ if args.composite:
     plotstr = ('comp_' + args.date_ana_start + '_' + args.date_ana_stop +
                '_n_' + str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
     fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-    fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
+    fig2, ax2 = plt.subplots(1, 3, figsize=(pw, pw / 2. * aspect))
     for ie, expid in enumerate(args.expid):
         if ie == 0:
             ax1.plot(x, exp_list[ie][0],
@@ -186,14 +201,17 @@ if args.composite:
                  c=cdict[expid], linewidth=1.5, label=expid)
         ax1.plot(x, exp_list[ie][2],
                  c=cdict[expid], linewidth=1.5, linestyle='--')
-        ax2.plot(x, exp_list[ie][3],
-                 c=cdict[expid], linewidth=1.5, label=expid)
-        ax2.plot(x, exp_list[ie][4],
-                 c=cdict[expid], linewidth=1.5, linestyle='--')
+
+        ax2[0].plot(x, exp_list[ie][6], c=cdict[expid], linewidth=1.5,
+                    label=expid)   # TODO Add error bars
+        ax2[1].plot(x, exp_list[ie][3], c=cdict[expid], linewidth=1.5)
+        ax2[1].plot(x, exp_list[ie][4], c=cdict[expid], linewidth=1.5,
+                    linestyle='--')
+        ax2[2].plot(x, exp_list[ie][5], c=cdict[expid], linewidth=1.5)
 
     ax1.set_ylabel('Prec mean/rmse [mm/h]')
-    ax2.set_ylabel('ens norm rmse/spread [mm/h]')
-    for ax in [ax1, ax2]:
+    # ax2.set_ylabel('ens norm rmse/spread [mm/h]')
+    for ax in [ax1] + list(ax2):
         set_plot(ax, args.date_ana_start[:-4] + '-' +
                  args.date_ana_stop[:-4], args, x)
 
@@ -217,7 +235,7 @@ else:
         plotstr = (date + '_n_' + str(args.n_kernel) + '_norm_' +
                    str(args.ens_norm_type))
         fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-        fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
+        fig2, ax2 = plt.subplots(1, 3, figsize=(pw, pw / 2. * aspect))
         for ie, expid in enumerate(args.expid):
             if ie == 0:
                 print len(exp_list[ie][0])
@@ -227,15 +245,24 @@ else:
                      c=cdict[expid], linewidth=1.5, label=expid)
             ax1.plot(x, exp_list[ie][2][index_start:index_stop],
                      c=cdict[expid], linewidth=1.5, linestyle='--')
-            ax2.plot(x, exp_list[ie][3][index_start:index_stop],
-                     c=cdict[expid], linewidth=1.5, label=expid)
-            ax2.plot(x, exp_list[ie][4][index_start:index_stop],
-                     c=cdict[expid], linewidth=1.5, linestyle='--')
+
+            ax2[0].plot(x, exp_list[ie][6][index_start:index_stop],
+                        c=cdict[expid], linewidth=1.5,
+                        label=expid)  # TODO Add error bars
+            ax2[1].plot(x, exp_list[ie][3][index_start:index_stop],
+                        c=cdict[expid], linewidth=1.5)
+            ax2[1].plot(x, exp_list[ie][4][index_start:index_stop],
+                        c=cdict[expid], linewidth=1.5,
+                        linestyle='--')
+            ax2[2].plot(x, exp_list[ie][5][index_start:index_stop],
+                        c=cdict[expid], linewidth=1.5)
 
         ax1.set_ylabel('Prec mean/rmse [mm/h]')
-        ax2.set_ylabel('ens norm rmse/spread [mm/h]')
-        for ax in [ax1, ax2]:
+        # ax2.set_ylabel('ens norm rmse/spread [mm/h]')
+        adjust = True
+        for ax in [ax1] + list(ax2):
             set_plot(ax, date[:-4], args, x)
+            adjust = False
 
         pd = plotdir + expid_str[:-1] + '/verif_ana_prec/'
         if not os.path.exists(pd): os.makedirs(pd)

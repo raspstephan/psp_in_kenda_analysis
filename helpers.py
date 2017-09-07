@@ -125,7 +125,7 @@ def strip_expid(expid):
         replace('_2JUN', '')
 
 
-def set_plot(ax, title, args, hourlist_plot):
+def set_plot(ax, title, args, hourlist_plot, adjust=True):
     plt.sca(ax)
     ax.set_xlabel('Time [UTC]')
     ax.legend(loc=0, fontsize=8, frameon=False)
@@ -143,12 +143,14 @@ def set_plot(ax, title, args, hourlist_plot):
         ax.set_xticks(range(24)[::6])
         ax.set_xlim(0, 24)
     ax.set_title(title)
-    plt.subplots_adjust(bottom=0.18, left=0.18, right=0.97)
+    if adjust:
+        plt.subplots_adjust(bottom=0.18, left=0.18, right=0.97)
 
 
 def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
-                      norm_thresh=0.1):
+                      norm_thresh=0.1, bs_threshold=1.):
     """
+    convfieldlist dimensions = (ens, x, y)
     Compute spread and rmse of ensemble with given normalization type.
     0: no normalization
     1: grid point normalization
@@ -158,12 +160,19 @@ def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
     ensradarmean = 0.5 * (convradar + meanfield)
     if ens_norm_type == 0:  # No normalization
         spread = np.nanmean(np.std(convfieldlist, axis=0, ddof=1))
+        rmv = np.sqrt(np.nanmean(np.var(convfieldlist, axis=0, ddof=1)))
         rmse = np.sqrt(np.nanmean((convradar - meanfield) ** 2))
+        mean = np.nanmean(meanfield)
+        mean_std = np.std(np.nanmean(convfieldlist, axis=(1, 2)), ddof=1)
+        bs = compute_bs(convradar, convfieldlist, threshold=bs_threshold)
+
+        results = (rmse, rmv, bs, mean, mean_std)
     elif ens_norm_type == 1:   # Grid point normalization
         spread = np.nanmean((np.std(convfieldlist, axis=0, ddof=1) /
                              meanfield)[meanfield >= norm_thresh])
         rmse = np.sqrt(np.nanmean(((convradar - meanfield) ** 2 /
                                    ensradarmean ** 2)[ensradarmean >= 0.1]))
+        results = (spread, rmse)
 
     elif ens_norm_type == 2:   # Domain normalization
         spread = (np.nanmean(np.std(convfieldlist, axis=0, ddof=1)
@@ -172,9 +181,20 @@ def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
         rmse = (np.sqrt(np.nanmean(((convradar - meanfield) ** 2)
                                     [ensradarmean >= 0.1])) /
                 np.nanmean(ensradarmean[ensradarmean >= 0.1]))
+        results = (spread, rmse)
 
     else:
         raise Exception, 'Wrong ens_norm_type'
 
-    return spread, rmse
+    return results
+
+
+def compute_bs(obs, enslist, threshold):
+    """
+    Compute the Brier score for a given threshold.
+    """
+    prob_fc = np.sum((enslist > threshold), axis=0) / enslist.shape[0]
+    bin_obs = obs > threshold
+    bs = np.nanmean((prob_fc - bin_obs) ** 2)
+    return bs
 
