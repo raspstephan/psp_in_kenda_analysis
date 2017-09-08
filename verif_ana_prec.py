@@ -16,8 +16,7 @@ from cosmo_utils.pywgrib import getfobj_ens, getfobj
 from cosmo_utils.diag import mean_spread_fieldobjlist
 from datetime import timedelta
 from scipy.stats import binned_statistic
-from helpers import save_fig_and_log, load_radar, load_det_da, load_ens_da, \
-    set_plot, compute_ens_stats
+from helpers import *
 from scipy.signal import convolve2d
 
 from config import *
@@ -92,13 +91,14 @@ for ie, expid in enumerate(args.expid):
         print 'Found pre-saved data.'
         # These objects are lists containing the hourly mean values
         # Corresponding to timelist. For each expid!
-        radarmean, detmean, detrmse, ensrmse, ensrmv, ensbs, ensmean, \
+        radarmean, detmean, detrmse, fss, ensrmse, ensrmv, ensbs, ensmean, \
             ensmean_std = np.load(savefn)
     else:
         print 'Did not find pre-saved data, compute!'
         radarmean = []
         detmean = []
         detrmse = []
+        fss = []
         ensrmse = []
         ensrmv = []
         ensbs = []
@@ -147,10 +147,14 @@ for ie, expid in enumerate(args.expid):
             # Compute the statistics
             radarmean.append(np.nanmean(nanradar))
             detmean.append(np.nanmean(nandet))
-            detrmse.append(np.sqrt(np.nanmean((convradar - convdet) ** 2)))
+
+            r = compute_det_stats(convradar, convdet, nanradar, nandet)
+            detrmse.append(r[0])
+            fss.append(r[1])
+
             r = compute_ens_stats(convradar, convfieldlist,
-                                     args.ens_norm_type,
-                                     norm_thresh=0.1)
+                                  args.ens_norm_type,
+                                  norm_thresh=0.1)
             ensrmse.append(r[0])
             ensrmv.append(r[1])
             ensbs.append(r[2])
@@ -158,7 +162,7 @@ for ie, expid in enumerate(args.expid):
             ensmean_std.append(r[4])
 
         print 'Save data: ', savefn
-        np.save(savefn, (radarmean, detmean, detrmse, ensrmse, ensrmv,
+        np.save(savefn, (radarmean, detmean, detrmse, fss, ensrmse, ensrmv,
                          ensbs, ensmean, ensmean_std))
 
     # Average if composite
@@ -171,6 +175,8 @@ for ie, expid in enumerate(args.expid):
                                    bins=hour_bins, statistic=np.nanmean)[0]
         detrmse = binned_statistic(hourlist, detrmse,
                                    bins=hour_bins, statistic=np.nanmean)[0]
+        fss = binned_statistic(hourlist, fss,
+                                   bins=hour_bins, statistic=np.nanmean)[0]
         ensrmse = binned_statistic(hourlist, ensrmse,
                                    bins=hour_bins, statistic=np.nanmean)[0]
         ensrmv = binned_statistic(hourlist, ensrmv,
@@ -182,45 +188,39 @@ for ie, expid in enumerate(args.expid):
         ensmean_std = binned_statistic(hourlist, ensmean_std,
                                    bins=hour_bins, statistic=np.nanmean)[0]
 
-    exp_list.append([radarmean, detmean, detrmse, ensrmse, ensrmv,
+    exp_list.append([radarmean, detmean, detrmse, fss, ensrmse, ensrmv,
                      ensbs, ensmean, ensmean_std])
 
+exp_list = np.array(exp_list)
+
 # Now the plotting...
-aspect = 0.75
 if args.composite:
-    x = np.unique(hourlist)
+    x = range(24)
     plotstr = ('comp_' + args.date_ana_start + '_' + args.date_ana_stop +
                '_n_' + str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
-    fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-    fig2, ax2 = plt.subplots(1, 3, figsize=(pw, pw / 2. * aspect))
-    for ie, expid in enumerate(args.expid):
-        if ie == 0:
-            ax1.plot(x, exp_list[ie][0],
-                     c='k', linewidth=2, label='Radar')
-        ax1.plot(x, exp_list[ie][1],
-                 c=cdict[expid], linewidth=1.5, label=expid)
-        ax1.plot(x, exp_list[ie][2],
-                 c=cdict[expid], linewidth=1.5, linestyle='--')
+    titlestr = args.date_ana_start[:-4] + '-' + args.date_ana_stop[:-4]
 
-        ax2[0].plot(x, exp_list[ie][6], c=cdict[expid], linewidth=1.5,
-                    label=expid)   # TODO Add error bars
-        ax2[1].plot(x, exp_list[ie][3], c=cdict[expid], linewidth=1.5)
-        ax2[1].plot(x, exp_list[ie][4], c=cdict[expid], linewidth=1.5,
-                    linestyle='--')
-        ax2[2].plot(x, exp_list[ie][5], c=cdict[expid], linewidth=1.5)
+    radar = exp_list[:, 0]
+    meanprec = exp_list[:, 1]
+    rmse = exp_list[:, 2]
+    fss = exp_list[:, 3]
+    det_fig = make_fig_fc_det(args, x, radar, meanprec, rmse, fss, titlestr)
 
-    ax1.set_ylabel('Prec mean/rmse [mm/h]')
-    # ax2.set_ylabel('ens norm rmse/spread [mm/h]')
-    for ax in [ax1] + list(ax2):
-        set_plot(ax, args.date_ana_start[:-4] + '-' +
-                 args.date_ana_stop[:-4], args, x)
+    ensmean = exp_list[:, 7]
+    ensmean_std = exp_list[:, 8]
+    ensrmse = exp_list[:, 4]
+    ensrmv = exp_list[:, 5]
+    ensbs = exp_list[:, 6]
+    ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, ensrmse,
+                              ensrmv, ensbs, titlestr)
 
-    plotdir = plotdir + expid_str[:-1] + '/verif_ana_prec/'
-    if not os.path.exists(plotdir): os.makedirs(plotdir)
+    pd = plotdir + expid_str[:-1] + '/verif_ana_prec/'
+    if not os.path.exists(pd): os.makedirs(pd)
 
-    save_fig_and_log(fig1, 'det_' + plotstr, plotdir)
-    save_fig_and_log(fig2, 'ens_' + plotstr, plotdir)
+    save_fig_and_log(det_fig, 'det_' + plotstr, pd)
+    save_fig_and_log(ens_fig, 'ens_' + plotstr, pd)
     plt.close('all')
+
 
 else:
     x = range(24)
@@ -234,42 +234,34 @@ else:
         date = yyyymmddhhmmss(day)
         plotstr = (date + '_n_' + str(args.n_kernel) + '_norm_' +
                    str(args.ens_norm_type))
-        fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-        fig2, ax2 = plt.subplots(1, 3, figsize=(pw, pw / 2. * aspect))
-        for ie, expid in enumerate(args.expid):
-            if ie == 0:
-                print len(exp_list[ie][0])
-                ax1.plot(x, exp_list[ie][0][index_start:index_stop],
-                         c='k', linewidth=2, label='Radar')
-            ax1.plot(x, exp_list[ie][1][index_start:index_stop],
-                     c=cdict[expid], linewidth=1.5, label=expid)
-            ax1.plot(x, exp_list[ie][2][index_start:index_stop],
-                     c=cdict[expid], linewidth=1.5, linestyle='--')
 
-            ax2[0].plot(x, exp_list[ie][6][index_start:index_stop],
-                        c=cdict[expid], linewidth=1.5,
-                        label=expid)  # TODO Add error bars
-            ax2[1].plot(x, exp_list[ie][3][index_start:index_stop],
-                        c=cdict[expid], linewidth=1.5)
-            ax2[1].plot(x, exp_list[ie][4][index_start:index_stop],
-                        c=cdict[expid], linewidth=1.5,
-                        linestyle='--')
-            ax2[2].plot(x, exp_list[ie][5][index_start:index_stop],
-                        c=cdict[expid], linewidth=1.5)
+        radar = exp_list[:, 0, index_start:index_stop]
+        meanprec = exp_list[:, 1, index_start:index_stop]
+        rmse = exp_list[:, 2, index_start:index_stop]
+        fss = exp_list[:, 3, index_start:index_stop]
+        det_fig = make_fig_fc_det(args, x, radar, meanprec, rmse, fss,
+                                  date[:-4])
 
-        ax1.set_ylabel('Prec mean/rmse [mm/h]')
-        # ax2.set_ylabel('ens norm rmse/spread [mm/h]')
-        adjust = True
-        for ax in [ax1] + list(ax2):
-            set_plot(ax, date[:-4], args, x)
-            adjust = False
+        ensmean = exp_list[:, 7, index_start:index_stop]
+        ensmean_std = exp_list[:, 8, index_start:index_stop]
+        ensrmse = exp_list[:, 4, index_start:index_stop]
+        ensrmv = exp_list[:, 5, index_start:index_stop]
+        ensbs = exp_list[:, 6, index_start:index_stop]
+
+        ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, ensrmse,
+                                  ensrmv, ensbs, date[:-4])
 
         pd = plotdir + expid_str[:-1] + '/verif_ana_prec/'
         if not os.path.exists(pd): os.makedirs(pd)
 
-        save_fig_and_log(fig1, 'det_' + plotstr, pd)
-        save_fig_and_log(fig2, 'ens_' + plotstr, pd)
+        save_fig_and_log(det_fig, 'det_' + plotstr, pd)
+        save_fig_and_log(ens_fig, 'ens_' + plotstr, pd)
         plt.close('all')
 
         index_start += 24
         index_stop += 24
+
+
+
+
+

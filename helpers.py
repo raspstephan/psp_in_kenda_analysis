@@ -14,6 +14,7 @@ from config import *  # Import config file
 from cosmo_utils.pyncdf import getfobj_ncdf
 import numpy as np
 import matplotlib.pyplot as plt
+from cosmo_utils.scores.probab import FSS
 
 
 def save_fig_and_log(fig, fig_name, plot_dir):
@@ -147,6 +148,26 @@ def set_plot(ax, title, args, hourlist_plot, adjust=True):
         plt.subplots_adjust(bottom=0.18, left=0.18, right=0.97)
 
 
+def set_panel(ax):
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['left'].set_position(('outward', 3))
+    ax.spines['bottom'].set_position(('outward', 3))
+    ax.set_xticks(range(24)[::6])
+    ax.set_xlim(0, 24)
+    ax.set_xlabel('Time [UTC]')
+
+
+def compute_det_stats(nanradar, nandet, convradar, convdet):
+    """
+    Compute RMSE and FSS for determinsitc forecast
+    """
+    rmse = np.sqrt(np.nanmean((convradar - convdet) ** 2))
+    fss = FSS(1, 21, nanradar, nandet, python_core=True)
+
+    return rmse, fss
+
+
 def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
                       norm_thresh=0.1, bs_threshold=1.):
     """
@@ -198,3 +219,94 @@ def compute_bs(obs, enslist, threshold):
     bs = np.nanmean((prob_fc - bin_obs) ** 2)
     return bs
 
+
+def make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, rmse, rmv, bs, title):
+    """
+    Plot ensemble panels: 
+    1. Mean precipitation with ensemble error bars
+    2. RMSE and RMV
+    3. BS
+    """
+
+    aspect = 0.4
+    # Set up figure
+    fig, axes = plt.subplots(1, 3, figsize=(pw, aspect * pw))
+
+    # Plot radar in first panel
+    axes[0].plot(x, radar[0], c='k', lw=2, label='Radar')
+
+    # Loop over experiments
+    for ie, expid in enumerate(args.expid):
+
+        # Plot mean with error bars in first panel
+        axes[0].errorbar(x, ensmean[ie], yerr=ensmean_std[ie], c=cdict[expid],
+                         label=expid)
+
+        # Plot RMSE and RMV in second plot
+        axes[1].plot(x, rmse[ie], lw=1.5, c=cdict[expid])
+        axes[1].plot(x, rmv[ie], lw=1.5, c=cdict[expid], ls='--')
+
+        # Plot Brier Score in thrid panel
+        axes[2].plot(x, bs[ie], lw=1.5, c=cdict[expid])
+
+    # Define labels
+    axes[0].set_title('Mean precip pm std')
+    axes[0].set_ylabel('[mm/h]')
+    axes[1].set_title('RMSE and RMV')
+    axes[1].set_ylabel('[mm/h]')
+    axes[2].set_title('Brier Score')
+
+    # Adjust spines and x-label
+    for ax in axes:
+        set_panel(ax)
+
+    axes[0].legend(loc=0, fontsize=5, frameon=False)
+    fig.suptitle(title, fontsize=10)
+    plt.tight_layout(rect=(0, 0, 1, 0.95))
+
+    return fig
+
+
+def make_fig_fc_det(args, x, radar, meanprec, rmse, fss, title):
+    """
+    Plot deterministic panels.
+    1. Mean precipitation
+    2. RMSE
+    3. FSS
+    """
+    aspect = 0.4
+    # Set up figure
+    fig, axes = plt.subplots(1, 3, figsize=(pw, aspect * pw))
+
+    # Plot radar in first panel
+    axes[0].plot(x, radar[0], c='k', lw=2, label='Radar')
+
+    # Loop over experiments
+    for ie, expid in enumerate(args.expid):
+
+        # Mean precipitation in first panel
+        axes[0].plot(x, meanprec[ie], c=cdict[expid], label=expid)
+
+        # RMSE in second panel
+        axes[1].plot(x, rmse[ie], c=cdict[expid])
+
+        # FSS in third panel
+        axes[2].plot(x, fss[ie], c=cdict[expid])
+
+    # Define labels
+    axes[0].set_title('Mean precip')
+    axes[0].set_ylabel('[mm/h]')
+    axes[1].set_title('RMSE')
+    axes[1].set_ylabel('[mm/h]')
+    axes[2].set_title('FSS')
+    axes[2].set_ylabel('[1 mm/h, 60 km]')
+
+    # Adjust spines and x-label
+    for ax in axes:
+        set_panel(ax)
+
+    axes[0].legend(loc=0, fontsize=5, frameon=False)
+    fig.suptitle(title, fontsize=10)
+    plt.tight_layout(rect=(0, 0, 1, 0.95))
+
+    return fig

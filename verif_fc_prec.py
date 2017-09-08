@@ -14,8 +14,7 @@ from scipy.stats import binned_statistic
 import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
 from cosmo_utils.scores.probab import FSS
-from helpers import save_fig_and_log, load_det, load_radar, load_ens, \
-    strip_expid, set_plot, compute_ens_stats
+from helpers import *
 from config import *  # Import config file
 
 # Load radar tot mask
@@ -61,6 +60,11 @@ parser.add_argument('--no_radar',
                     action='store_true',
                     help='Do not plot radar curve')
 parser.set_defaults(no_radar=False)
+parser.add_argument('--radar_thresh',
+                    type=float,
+                    default=100.,
+                    help='Radar values above threshold will be set to nan.'
+                         'Default = 100.')
 args = parser.parse_args()
 assert args.ana in ['det', 'ens'], 'Wrong analysis!'
 
@@ -100,8 +104,12 @@ for ie, expid in enumerate(args.expid):
         detrmse_list = []
         fss_list = []
     else:
-        spread_list = []
-        rmse_list = []
+        radar_list = []
+        ensrmse_list = []
+        ensrmv_list = []
+        ensbs_list = []
+        ensmean_list = []
+        ensmean_std_list = []
 
     for t in timelist:
         print t
@@ -125,36 +133,41 @@ for ie, expid in enumerate(args.expid):
                 detrmse = []
                 fss = []
             else:
-                spread = []
-                rmse = []
+                radar = []
+                ensrmse = []
+                ensrmv = []
+                ensbs = []
+                ensmean = []
+                ensmean_std = []
 
             for h in range(1, args.hint + 1):
                 print 'Hour', h
                 hourlist.append(h)
                 # Load data
+
                 radarfobj = load_radar(date, ddhhmmss(timedelta(hours=h)))
+                tmpmask = np.logical_or(totmask,
+                                        radarfobj.data > args.radar_thresh)
                 nanradar = radarfobj.data
-                nanradar[totmask] = np.nan
+                nanradar[tmpmask] = np.nan
                 convradar = convolve2d(nanradar, kernel, mode='same')
+                radar.append(np.mean(radarfobj.data[~tmpmask]))
                 if args.ana == 'det':
                     # Det run
                     detfobj = load_det(DATA_DIR, date,
                                        ddhhmmss(timedelta(hours=h)))
 
-                    radar.append(np.mean(radarfobj.data[~totmask]))
-                    detmean.append(np.mean(detfobj.data[~totmask]))
+                    detmean.append(np.mean(detfobj.data[~tmpmask]))
 
                     # Upscaled RMSE
                     nandet = detfobj.data
-                    nandet[totmask] = np.nan
+                    nandet[tmpmask] = np.nan
                     convdet = convolve2d(nandet, kernel, mode='same')
-                    detradarmean = 0.5 * (convradar + convdet)
-                    detrmse.append(
-                        np.sqrt(np.nanmean(((convradar - convdet) ** 2 /
-                                            (detradarmean) ** 2)[
-                                               detradarmean >= 0.1])))
-                    fss.append(FSS(1, 21, nanradar, nandet,
-                                   python_core=True))
+
+                    r = compute_det_stats(convradar, convdet, nanradar, nandet)
+                    detrmse.append(r[0])
+                    fss.append(r[1])
+
 
                 else:
                     ensfobjlist = load_ens(DATA_DIR, date,
@@ -162,16 +175,19 @@ for ie, expid in enumerate(args.expid):
                     convfieldlist = []
                     for ensfobj in ensfobjlist:
                         nanfield = ensfobj.data
-                        nanfield[totmask] = np.nan
+                        nanfield[tmpmask] = np.nan
                         convfield = convolve2d(nanfield, kernel,
                                                mode='same')
                         convfieldlist.append(convfield)
                     convfieldlist = np.array(convfieldlist)
-                    s, r = compute_ens_stats(convradar, convfieldlist,
-                                             args.ens_norm_type,
-                                             norm_thresh=0.1)
-                    spread.append(s)
-                    rmse.append(r)
+                    r = compute_ens_stats(convradar, convfieldlist,
+                                          args.ens_norm_type,
+                                          norm_thresh=0.1)
+                    ensrmse.append(r[0])
+                    ensrmv.append(r[1])
+                    ensbs.append(r[2])
+                    ensmean.append(r[3])
+                    ensmean_std.append(r[4])
 
             # save the data
             if args.ana == 'det':
@@ -179,7 +195,8 @@ for ie, expid in enumerate(args.expid):
                 np.save(savefn, (radar, detmean, detrmse, fss))
             else:
                 print 'Save data: ', savefn
-                np.save(savefn, (spread, rmse))
+                np.save(savefn, (radar, ensrmse, ensrmv, ensbs, ensmean,
+                                 ensmean_std))
 
         # Append to list over days
         if args.ana == 'det':
@@ -188,8 +205,13 @@ for ie, expid in enumerate(args.expid):
             detrmse_list.append(detrmse)
             fss_list.append(fss)
         else:
-            spread_list.append(spread)
-            rmse_list.append(rmse)
+            radar_list.append(radar)
+            ensrmse_list.append(ensrmse)
+            ensrmv_list.append(ensrmv)
+            ensbs_list.append(ensbs)
+            ensmean_list.append(ensmean)
+            ensmean_std_list.append(ensmean_std)
+
 
     if args.composite:
         # Bin the data
@@ -200,17 +222,24 @@ for ie, expid in enumerate(args.expid):
             meanfss = np.mean(fss_list, axis=0)
             exp_list.append([radarmean, detmean, detrmse, meanfss])
         if args.ana == 'ens':
-            ensspread = np.mean(spread_list, axis=0)
-            ensrmse = np.mean(rmse_list, axis=0)
-            exp_list.append([ensspread, ensrmse])
+            radarmean = np.mean(radar_list, axis=0)
+            ensrmse = np.mean(ensrmse_list, axis=0)
+            ensrmv = np.mean(ensrmv_list, axis=0)
+            ensbs = np.mean(ensbs_list, axis=0)
+            ensmean = np.mean(ensmean_list, axis=0)
+            ensmean_std = np.mean(ensmean_std_list, axis=0)
+            exp_list.append([radarmean, ensrmse, ensrmv, ensbs, ensmean,
+                             ensmean_std])
 
     else:
         if args.ana == 'det':
             exp_list.append([radar_list, detmean_list, detrmse_list,
                              fss_list])
         else:
-            exp_list.append([spread_list, rmse_list])
+            exp_list.append([radar_list, ensrmse_list, ensrmv_list, ensbs_list,
+                             ensmean_list, ensmean_std_list])
 
+exp_list = np.array(exp_list)
 
 # Now plot!
 # Set up figure
@@ -219,47 +248,30 @@ x = range(1, args.hint + 1)
 if args.composite:
     plotstr = (args.ana + '_comp_' + args.date_start + '_' + args.date_stop + '_n_' +
                    str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
-    if args.no_radar:
-        plotstr += '_no_radar'
-    fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-    if args.ana == 'det':
-        fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-    for ie, expid in enumerate(args.expid):
-        if args.ana == 'det':
-            if ie == 0 and not args.no_radar:
-                ax1.plot(x, exp_list[ie][0],
-                         c='k', linewidth=2, label='Radar')
-            ax1.plot(x, exp_list[ie][1],
-                     c=cdict[expid], linewidth=1.5, label=expid)
-            ax2.plot(x, exp_list[ie][3],
-                     c=cdict[expid], linewidth=1.5, label=expid)
-        if args.ana == 'ens':
-            ax1.plot(x, exp_list[ie][0],
-                     c=cdict[expid], linewidth=1.5, linestyle='--')
-            ax1.plot(x, exp_list[ie][1],
-                     c=cdict[expid], linewidth=1.5, label=expid)
+    pd = plotdir + expid_str[:-1] + '/verif_fc_prec/'
+    if not os.path.exists(pd): os.makedirs(pd)
 
-    # Finish the plots
     if args.ana == 'det':
-        ax1.set_ylabel('Precipitation [mm/h]')
-        ax2.set_ylabel('FSS [58.8km]')
-        for ax in [ax1, ax2]:
-            set_plot(ax, 'Det fc ' + args.date_start[:-4] + '-' +
-                     args.date_stop[:-4], args, hourlist_plot)
-    if args.ana == 'ens':
-        ax1.set_ylabel('Norm spread/rmse')
-        set_plot(ax1, 'Normalized spread (--) and RMSE (-)',
-                 args, hourlist_plot)
+        radar = exp_list[:, 0]
+        meanprec = exp_list[:, 1]
+        rmse = exp_list[:, 2]
+        fss = exp_list[:, 3]
+        det_fig = make_fig_fc_det(args, x, radar, meanprec, rmse, fss,
+                                  date[:-4])
 
-    plotdir = plotdir + expid_str[:-1] + '/verif_fc_prec/'
-    if not os.path.exists(plotdir): os.makedirs(plotdir)
+        save_fig_and_log(det_fig, plotstr, pd)
 
-    # Save figure and create log str
-    if args.ana == 'det':
-        save_fig_and_log(fig1, 'diprec_' + plotstr, plotdir)
-        save_fig_and_log(fig2, 'fss_' + plotstr, plotdir)
     else:
-        save_fig_and_log(fig1, 'ens_spread_' + plotstr, plotdir)
+        radar = exp_list[:, 0]
+        ensmean = exp_list[:, 4]
+        ensmean_std = exp_list[:, 5]
+        ensrmse = exp_list[:, 1]
+        ensrmv = exp_list[:, 2]
+        ensbs = exp_list[:, 3]
+        ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std,
+                                  ensrmse, ensrmv, ensbs, date[:-4])
+
+        save_fig_and_log(ens_fig, plotstr, pd)
 
     plt.close('all')
 
@@ -268,46 +280,31 @@ else:
         date = yyyymmddhhmmss(t)
         plotstr = (args.ana + '_' + date + '_n_' +
                    str(args.n_kernel) + '_norm_' + str(args.ens_norm_type))
-        if args.no_radar:
-            plotstr += '_no_radar'
-        fig1, ax1 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-        if args.ana == 'det':
-            fig2, ax2 = plt.subplots(1, 1, figsize=(pw / 2., pw / 2. * aspect))
-        for ie, expid in enumerate(args.expid):
-            if args.ana == 'det':
-                if ie == 0 and not args.no_radar:
-                    ax1.plot(x, exp_list[ie][0][it],
-                             c='k', linewidth=2, label='Radar')
-                ax1.plot(x, exp_list[ie][1][it],
-                         c=cdict[expid], linewidth=1.5, label=expid)
-                ax2.plot(x, exp_list[ie][3][it],
-                         c=cdict[expid], linewidth=1.5, label=expid)
-            if args.ana == 'ens':
-                ax1.plot(x, exp_list[ie][0][it],
-                         c=cdict[expid], linewidth=1.5, linestyle='--')
-                ax1.plot(x, exp_list[ie][1][it],
-                         c=cdict[expid], linewidth=1.5, label=expid)
-
-        # Finish the plots
-        if args.ana == 'det':
-            ax1.set_ylabel('Precipitation [mm/h]')
-            ax2.set_ylabel('FSS [58.8km]')
-            for ax in [ax1, ax2]:
-                set_plot(ax, 'Det fc ' + date[:-4], args, hourlist_plot)
-        if args.ana == 'ens':
-            ax1.set_ylabel('Norm spread/rmse')
-            set_plot(ax1, 'Normalized spread (--) and RMSE (-)',
-                     args, hourlist_plot)
-
         pd = plotdir + expid_str[:-1] + '/verif_fc_prec/'
         if not os.path.exists(pd):
             os.makedirs(pd)
 
-        # Save figure and create log str
         if args.ana == 'det':
-            save_fig_and_log(fig1, 'diprec_' + plotstr, pd)
-            save_fig_and_log(fig2, 'fss_' + plotstr, pd)
+            radar = exp_list[:, 0, it]
+            meanprec = exp_list[:, 1, it]
+            rmse = exp_list[:, 2, it]
+            fss = exp_list[:, 3, it]
+            det_fig = make_fig_fc_det(args, x, radar, meanprec, rmse, fss,
+                                      date[:-4])
+
+            save_fig_and_log(det_fig, plotstr, pd)
+
         else:
-            save_fig_and_log(fig1, 'ens_spread_' + plotstr, pd)
+            radar = exp_list[:, 0, it]
+            ensmean = exp_list[:, 4, it]
+            ensmean_std = exp_list[:, 5, it]
+            ensrmse = exp_list[:, 1, it]
+            ensrmv = exp_list[:, 2, it]
+            ensbs = exp_list[:, 3, it]
+            ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std,
+                                      ensrmse, ensrmv, ensbs, date[:-4])
+
+            save_fig_and_log(ens_fig, plotstr, pd)
 
         plt.close('all')
+
