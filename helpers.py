@@ -163,9 +163,10 @@ def compute_det_stats(nanradar, nandet, convradar, convdet):
     Compute RMSE and FSS for determinsitc forecast
     """
     rmse = np.sqrt(np.nanmean((convradar - convdet) ** 2))
-    fss = FSS(1, 21, nanradar, nandet, python_core=True)
+    fss01 = FSS(0.1, 21, nanradar, nandet, python_core=True)
+    fss10 = FSS(1.0, 21, nanradar, nandet, python_core=True)
 
-    return rmse, fss
+    return rmse, fss01, fss10
 
 
 def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
@@ -267,7 +268,7 @@ def make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, rmse, rmv, bs, title):
     return fig
 
 
-def make_fig_fc_det(args, x, radar, meanprec, rmse, fss, title):
+def make_fig_fc_det_rmse(args, x, radar, meanprec, rmse, fss, title):
     """
     Plot deterministic panels.
     1. Mean precipitation
@@ -298,6 +299,51 @@ def make_fig_fc_det(args, x, radar, meanprec, rmse, fss, title):
     axes[0].set_ylabel('[mm/h]')
     axes[1].set_title('RMSE')
     axes[1].set_ylabel('[mm/h]')
+    axes[2].set_title('FSS')
+    axes[2].set_ylabel('[1 mm/h, 60 km]')
+
+    # Adjust spines and x-label
+    for ax in axes:
+        set_panel(ax)
+
+    axes[0].legend(loc=0, fontsize=5, frameon=False)
+    fig.suptitle(title, fontsize=10)
+    plt.tight_layout(rect=(0, 0, 1, 0.95))
+
+    return fig
+
+
+def make_fig_fc_det_fss(args, x, radar, meanprec, fss01, fss10, title):
+    """
+    Plot deterministic panels.
+    1. Mean precipitation
+    2. FSS 0.1
+    3. FSS 1.0
+    """
+    aspect = 0.4
+    # Set up figure
+    fig, axes = plt.subplots(1, 3, figsize=(pw, aspect * pw))
+
+    # Plot radar in first panel
+    axes[0].plot(x, radar[0], c='k', lw=2, label='Radar')
+
+    # Loop over experiments
+    for ie, expid in enumerate(args.expid):
+
+        # Mean precipitation in first panel
+        axes[0].plot(x, meanprec[ie], c=cdict[expid], label=expid)
+
+        # RMSE in second panel
+        axes[1].plot(x, fss01[ie], c=cdict[expid])
+
+        # FSS in third panel
+        axes[2].plot(x, fss10[ie], c=cdict[expid])
+
+    # Define labels
+    axes[0].set_title('Mean precip')
+    axes[0].set_ylabel('[mm/h]')
+    axes[1].set_title('FSS')
+    axes[1].set_ylabel('[0.1 mm/h, 60 km]')
     axes[2].set_title('FSS')
     axes[2].set_ylabel('[1 mm/h, 60 km]')
 

@@ -53,6 +53,11 @@ parser.add_argument('--ens_norm_type',
                     default=1,
                     help='Type of ensemble normalization. '
                          '0 (no normalization), 1 or 2.')
+parser.add_argument('--recompute',
+                    dest='recompute',
+                    action='store_true',
+                    help='Recompute pre-processed files.')
+parser.set_defaults(recompute=False)
 args = parser.parse_args()
 
 assert args.n_kernel % 2 == 1, 'n_kernel must be odd'
@@ -87,7 +92,7 @@ for ie, expid in enumerate(args.expid):
               args.date_ana_stop + '_n_' + str(args.n_kernel) + '_norm_' +
               str(args.ens_norm_type) + '_.npy')
     print 'Try to load pre-saved data:', savefn
-    if os.path.exists(savefn):
+    if os.path.exists(savefn) and not args.recompute:
         print 'Found pre-saved data.'
         # These objects are lists containing the hourly mean values
         # Corresponding to timelist. For each expid!
@@ -204,7 +209,7 @@ if args.composite:
     meanprec = exp_list[:, 1]
     rmse = exp_list[:, 2]
     fss = exp_list[:, 3]
-    det_fig = make_fig_fc_det(args, x, radar, meanprec, rmse, fss, titlestr)
+    det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, rmse, fss, titlestr)
 
     ensmean = exp_list[:, 7]
     ensmean_std = exp_list[:, 8]
@@ -239,7 +244,7 @@ else:
         meanprec = exp_list[:, 1, index_start:index_stop]
         rmse = exp_list[:, 2, index_start:index_stop]
         fss = exp_list[:, 3, index_start:index_stop]
-        det_fig = make_fig_fc_det(args, x, radar, meanprec, rmse, fss,
+        det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, rmse, fss,
                                   date[:-4])
 
         ensmean = exp_list[:, 7, index_start:index_stop]
