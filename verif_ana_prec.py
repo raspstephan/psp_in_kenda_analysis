@@ -96,14 +96,15 @@ for ie, expid in enumerate(args.expid):
         print 'Found pre-saved data.'
         # These objects are lists containing the hourly mean values
         # Corresponding to timelist. For each expid!
-        radarmean, detmean, detrmse, fss, ensrmse, ensrmv, ensbs, ensmean, \
+        radarmean, detmean, detrmse, fss01, fss10, ensrmse, ensrmv, ensbs, ensmean, \
             ensmean_std = np.load(savefn)
     else:
         print 'Did not find pre-saved data, compute!'
         radarmean = []
         detmean = []
         detrmse = []
-        fss = []
+        fss01 = []
+        fss10 = []
         ensrmse = []
         ensrmv = []
         ensbs = []
@@ -155,7 +156,8 @@ for ie, expid in enumerate(args.expid):
 
             r = compute_det_stats(convradar, convdet, nanradar, nandet)
             detrmse.append(r[0])
-            fss.append(r[1])
+            fss01.append(r[1])
+            fss10.append(r[2])
 
             r = compute_ens_stats(convradar, convfieldlist,
                                   args.ens_norm_type,
@@ -167,8 +169,8 @@ for ie, expid in enumerate(args.expid):
             ensmean_std.append(r[4])
 
         print 'Save data: ', savefn
-        np.save(savefn, (radarmean, detmean, detrmse, fss, ensrmse, ensrmv,
-                         ensbs, ensmean, ensmean_std))
+        np.save(savefn, (radarmean, detmean, detrmse, fss01, fss10, ensrmse,
+                         ensrmv, ensbs, ensmean, ensmean_std))
 
     # Average if composite
     if args.composite:
@@ -180,8 +182,10 @@ for ie, expid in enumerate(args.expid):
                                    bins=hour_bins, statistic=np.nanmean)[0]
         detrmse = binned_statistic(hourlist, detrmse,
                                    bins=hour_bins, statistic=np.nanmean)[0]
-        fss = binned_statistic(hourlist, fss,
+        fss01 = binned_statistic(hourlist, fss01,
                                    bins=hour_bins, statistic=np.nanmean)[0]
+        fss10 = binned_statistic(hourlist, fss10,
+                               bins=hour_bins, statistic=np.nanmean)[0]
         ensrmse = binned_statistic(hourlist, ensrmse,
                                    bins=hour_bins, statistic=np.nanmean)[0]
         ensrmv = binned_statistic(hourlist, ensrmv,
@@ -193,7 +197,7 @@ for ie, expid in enumerate(args.expid):
         ensmean_std = binned_statistic(hourlist, ensmean_std,
                                    bins=hour_bins, statistic=np.nanmean)[0]
 
-    exp_list.append([radarmean, detmean, detrmse, fss, ensrmse, ensrmv,
+    exp_list.append([radarmean, detmean, detrmse, fss01, fss10, ensrmse, ensrmv,
                      ensbs, ensmean, ensmean_std])
 
 exp_list = np.array(exp_list)
@@ -208,14 +212,16 @@ if args.composite:
     radar = exp_list[:, 0]
     meanprec = exp_list[:, 1]
     rmse = exp_list[:, 2]
-    fss = exp_list[:, 3]
-    det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, rmse, fss, titlestr)
+    fss01 = exp_list[:, 3]
+    fss10 = exp_list[:, 4]
+    det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, fss01, fss10,
+                                  titlestr)
 
-    ensmean = exp_list[:, 7]
-    ensmean_std = exp_list[:, 8]
-    ensrmse = exp_list[:, 4]
-    ensrmv = exp_list[:, 5]
-    ensbs = exp_list[:, 6]
+    ensmean = exp_list[:, 8]
+    ensmean_std = exp_list[:, 9]
+    ensrmse = exp_list[:, 5]
+    ensrmv = exp_list[:, 6]
+    ensbs = exp_list[:, 7]
     ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, ensrmse,
                               ensrmv, ensbs, titlestr)
 
@@ -244,14 +250,15 @@ else:
         meanprec = exp_list[:, 1, index_start:index_stop]
         rmse = exp_list[:, 2, index_start:index_stop]
         fss = exp_list[:, 3, index_start:index_stop]
-        det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, rmse, fss,
+        fss = exp_list[:, 4, index_start:index_stop]
+        det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, fss01, fss10,
                                   date[:-4])
 
-        ensmean = exp_list[:, 7, index_start:index_stop]
-        ensmean_std = exp_list[:, 8, index_start:index_stop]
-        ensrmse = exp_list[:, 4, index_start:index_stop]
-        ensrmv = exp_list[:, 5, index_start:index_stop]
-        ensbs = exp_list[:, 6, index_start:index_stop]
+        ensmean = exp_list[:, 8, index_start:index_stop]
+        ensmean_std = exp_list[:, 9, index_start:index_stop]
+        ensrmse = exp_list[:, 5, index_start:index_stop]
+        ensrmv = exp_list[:, 6, index_start:index_stop]
+        ensbs = exp_list[:, 7, index_start:index_stop]
 
         ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, ensrmse,
                                   ensrmv, ensbs, date[:-4])

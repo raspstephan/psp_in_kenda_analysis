@@ -44,6 +44,11 @@ parser.add_argument('--var', metavar='var', type=str, default='T')
 parser.add_argument('--obs', metavar='obs', type=str, default='TEMP')
 parser.add_argument('--hint', metavar='hint', type=int, default=24,
                     help='Maximum forecast lead time')
+parser.add_argument('--recompute',
+                    dest='recompute',
+                    action='store_true',
+                    help='Recompute pre-processed files.')
+parser.set_defaults(recompute=False)
 args = parser.parse_args()
 
 if args.obs in ['TEMP', 'AIREP']:
@@ -103,7 +108,7 @@ for ie, expid in enumerate(args.expid):
     if not os.path.exists(savedir): os.makedirs(savedir)
     savefn = savedir + plotstr + '.npy'
     print 'Try to load pre-saved data:', savefn
-    if os.path.exists(savefn):
+    if os.path.exists(savefn) and not args.recompute:
         print 'Found pre-saved data.'
         mean_bias, rmse, count = np.load(savefn)
     else:
