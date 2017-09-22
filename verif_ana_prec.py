@@ -249,8 +249,8 @@ else:
         radar = exp_list[:, 0, index_start:index_stop]
         meanprec = exp_list[:, 1, index_start:index_stop]
         rmse = exp_list[:, 2, index_start:index_stop]
-        fss = exp_list[:, 3, index_start:index_stop]
-        fss = exp_list[:, 4, index_start:index_stop]
+        fss01 = exp_list[:, 3, index_start:index_stop]
+        fss10 = exp_list[:, 4, index_start:index_stop]
         det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, fss01, fss10,
                                   date[:-4])
 
