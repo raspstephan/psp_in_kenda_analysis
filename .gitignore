@@ -1,3 +1,4 @@
 figures/
 *.pyc
 .idea/
+.ipynb_checkpoints

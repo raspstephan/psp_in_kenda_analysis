@@ -1,12 +1,12 @@
 import os
 
 # General settings
-if os.getcwd() == '/panfs/e/vol0/extsrasp/dwd_scripts':
+if os.getcwd() == '/panfs/e/vol0/extsrasp/psp_in_kenda_analysis/python_scripts':
     plotdir = '/e/uwork/extsrasp/plots/'
     datadir = '/e/uwork/extsrasp/cosmo_letkf/data_forecast/'
     radardir = '/e/uwork/extsrasp/radolan/'
     savedir_base = '/e/uwork/extsrasp/save/'
-elif os.getcwd() == '/home/s/S.Rasp/repositories/dwd_scripts':
+elif os.getcwd() == '/home/s/S.Rasp/repositories/psp_in_kenda_analysis/python_scripts':
     datadir = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/data_forecast/'
     datadir_da = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/data/'
     datadir_cosmo2 = '/project/meteo/cosmo/stephan.rasp/dwd_data/data/'
