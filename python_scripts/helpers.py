@@ -29,7 +29,8 @@ def save_fig_and_log(fig, fig_name, plot_dir):
     # Step 2: Create and save log file
     time_stamp = datetime.now().strftime("%Y-%m-%dT%H:%M:%S")
     pwd = check_output(['pwd']).rstrip()  # Need to remove trailing /n
-    git_hash = Repo(pwd).heads[0].commit
+    git_dir = pwd.rsplit('/', 1)[0]
+    git_hash = Repo(git_dir).heads[0].commit
     exe_str = ' '.join(sys.argv)
     s = check_output(['conda', 'env', 'list'])
     for l in s.split('\n'):

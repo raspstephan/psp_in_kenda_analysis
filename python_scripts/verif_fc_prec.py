@@ -18,7 +18,7 @@ from helpers import *
 from config import *  # Import config file
 
 # Load radar tot mask
-totmask = np.load('./radar_tot_mask.npy')
+totmask = np.load('../aux_data/radar_tot_mask.npy')
 
 # Arguments
 parser = argparse.ArgumentParser(description='Process input')
@@ -43,7 +43,7 @@ parser.add_argument('--ana', metavar='ana', type=str,
                     help='Type of analysis to be done [det or ens]')
 parser.add_argument('--ens_norm_type',
                     type=int,
-                    default=1,
+                    default=0,
                     help='Type of ensemble normalization. '
                          '0 (no normalization), 1 or 2.')
 parser.add_argument('--n_kernel',
@@ -149,11 +149,20 @@ for ie, expid in enumerate(args.expid):
                 ensmean = []
                 ensmean_std = []
 
+            # Load preloaded precipitation data
+            if args.ana == 'det':
+                preloaded_fn = (savedir_base + expid + '/prec_fields/det_' + 
+                                date + '.npy')
+                prec_fields = np.load(preloaded_fn)
+            elif args.ana == 'ens':
+                preloaded_fn = (savedir_base + expid + '/prec_fields/ens_' + 
+                                date + '.npy')
+                prec_fields = np.load(preloaded_fn)
+
             for h in range(1, args.hint + 1):
                 print 'Hour', h
                 hourlist.append(h)
                 # Load data
-
                 radarfobj = load_radar(date, ddhhmmss(timedelta(hours=h)))
                 tmpmask = np.logical_or(totmask,
                                         radarfobj.data > args.radar_thresh)
@@ -163,13 +172,12 @@ for ie, expid in enumerate(args.expid):
                 radar.append(np.mean(radarfobj.data[~tmpmask]))
                 if args.ana == 'det':
                     # Det run
-                    detfobj = load_det(DATA_DIR, date,
-                                       ddhhmmss(timedelta(hours=h)))
+                    prec_hour = prec_fields[h - 1]
 
-                    detmean.append(np.mean(detfobj.data[~tmpmask]))
+                    detmean.append(np.mean(prec_hour[~tmpmask]))
 
                     # Upscaled RMSE
-                    nandet = detfobj.data
+                    nandet = prec_hour
                     nandet[tmpmask] = np.nan
                     convdet = convolve2d(nandet, kernel, mode='same')
 
@@ -182,9 +190,10 @@ for ie, expid in enumerate(args.expid):
                 else:
                     ensfobjlist = load_ens(DATA_DIR, date,
                                            ddhhmmss(timedelta(hours=h)))
+                    prec_hour = prec_fields[h -1]
                     convfieldlist = []
-                    for ensfobj in ensfobjlist:
-                        nanfield = ensfobj.data
+                    for p in prec_hour:
+                        nanfield = p
                         nanfield[tmpmask] = np.nan
                         convfield = convolve2d(nanfield, kernel,
                                                mode='same')
