@@ -15,7 +15,8 @@ from cosmo_utils.pyncdf import getfobj_ncdf
 import numpy as np
 import matplotlib.pyplot as plt
 from cosmo_utils.scores.probab import FSS
-
+sys.path.append('/home/s/S.Rasp/repositories/enstools/')
+from enstools.scores import crps_sample
 
 def save_fig_and_log(fig, fig_name, plot_dir):
     """
@@ -221,6 +222,18 @@ def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
         raise Exception, 'Wrong ens_norm_type'
 
     return results
+
+
+def compute_crps(obs, enslist):
+    """
+    Compute the sample CRPS gripointwise and then average
+    """
+    obs_flat = np.ravel(obs)
+    mask = np.isfinite(obs_flat)
+    obs_flat = obs_flat[mask]
+    ens_flat = np.array([np.ravel(e)[mask] for e in enslist])
+    crps = crps_sample(obs_flat, ens_flat)
+    return np.mean(crps)
 
 
 def compute_bs(obs, enslist, threshold):

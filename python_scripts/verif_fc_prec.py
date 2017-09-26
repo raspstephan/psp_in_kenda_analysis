@@ -119,6 +119,7 @@ for ie, expid in enumerate(args.expid):
         ensbs_list = []
         ensmean_list = []
         ensmean_std_list = []
+        crps_list = []
 
     for t in timelist:
         print t
@@ -133,7 +134,7 @@ for ie, expid in enumerate(args.expid):
                 radar, detmean, detrmse, fss01, fss10, radar_hist, hist = \
                     np.load(savefn)
             if args.ana == 'ens':
-                radar, ensrmse, ensrmv, ensbs, ensmean, ensmean_std = \
+                radar, ensrmse, ensrmv, ensbs, ensmean, ensmean_std, crps = \
                     np.load(savefn)
         else:
             print 'Did not find pre-saved data, compute!'
@@ -153,6 +154,7 @@ for ie, expid in enumerate(args.expid):
                 ensbs = []
                 ensmean = []
                 ensmean_std = []
+                crps = []
 
             # Load preloaded precipitation data
             if args.ana == 'det':
@@ -175,7 +177,7 @@ for ie, expid in enumerate(args.expid):
                 nanradar[tmpmask] = np.nan
                 convradar = convolve2d(nanradar, kernel, mode='same')
                 radar.append(np.mean(radarfobj.data[~tmpmask]))
-                radar_hist.append(compute_prec_hist(nanradar, bin_edges))
+                
                 if args.ana == 'det':
                     # Det run
                     prec_hour = prec_fields[h - 1]
@@ -193,11 +195,10 @@ for ie, expid in enumerate(args.expid):
                     fss10.append(r[2])
 
                     hist.append(compute_prec_hist(nandet, bin_edges))
+                    radar_hist.append(compute_prec_hist(nanradar, bin_edges))
 
 
                 else:
-                    ensfobjlist = load_ens(DATA_DIR, date,
-                                           ddhhmmss(timedelta(hours=h)))
                     prec_hour = prec_fields[h -1]
                     convfieldlist = []
                     for p in prec_hour:
@@ -216,6 +217,8 @@ for ie, expid in enumerate(args.expid):
                     ensmean.append(r[3])
                     ensmean_std.append(r[4])
 
+                    crps.append(compute_crps(convradar, convfieldlist))
+
             # Compute daily mean for histograms
             radar_hist = np.mean(radar_hist, axis=0)
             hist = np.mean(hist, axis=0)
@@ -228,7 +231,7 @@ for ie, expid in enumerate(args.expid):
             else:
                 print 'Save data: ', savefn
                 np.save(savefn, (radar, ensrmse, ensrmv, ensbs, ensmean,
-                                 ensmean_std))
+                                 ensmean_std, crps))
 
         # Append to list over days
         if args.ana == 'det':
@@ -246,6 +249,7 @@ for ie, expid in enumerate(args.expid):
             ensbs_list.append(ensbs)
             ensmean_list.append(ensmean)
             ensmean_std_list.append(ensmean_std)
+            crps_list.append(crps)
 
 
     if args.composite:
@@ -276,6 +280,7 @@ for ie, expid in enumerate(args.expid):
             ensbs = np.mean(ensbs_list, axis=0)
             ensmean = np.mean(ensmean_list, axis=0)
             ensmean_std = np.mean(ensmean_std_list, axis=0)
+            crps = np.mean(crps, axis=0)
             results_dict.update({
                 expid : {
                 'radar' : radarmean,
@@ -284,6 +289,7 @@ for ie, expid in enumerate(args.expid):
                 'ensbs' : ensbs,
                 'ensmean' : ensmean,
                 'ensmean_std' : ensmean_std,
+                'crps' : crps,
                 }
             })
 
@@ -309,6 +315,7 @@ for ie, expid in enumerate(args.expid):
                 'ensbs' : np.asarray(ensbs_list),
                 'ensmean' : np.asarray(ensmean_list),
                 'ensmean_std' : np.asarray(ensmean_std_list),
+                'crps' : np.asarray(crps),
                 }
             })
 

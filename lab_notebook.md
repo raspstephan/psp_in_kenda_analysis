@@ -15,6 +15,13 @@ Preloading done in ipynb, currently running for forecasts, det and ens.
 Tomorrow I need to adjust the precipitation forecast analysis script to read the preloaded files. 
 
 ## August 26
-Task: Adjust verif_fc_prec.py for preloaded files! Add metrics
- to dictionary instead of list! Done
-Next: Add precipitation histograms. Need the plotting still!
+Adjusted verif_fc_prec.py to use preloaded precipitation files. Added basic precipitation histograms and started with crps (data analysis working, but no plotting yet.)
+
+Note: I mixed up convolved and not-convolved fields for FSS and RMSE for my previous plots. 
+
+The preloading of the noDA_PSPv2 fields is not finished.
+
+Continue tomorrow:
+- Finish CRPS implementation and compute all fields. 
+- Check DA_REF det run and see whether SYNOP data is there
+- Start splitting basic metrics and putting plots in latex file!
