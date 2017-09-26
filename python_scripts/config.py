@@ -1,4 +1,5 @@
 import os
+import numpy as np
 
 # General settings
 if os.getcwd() == '/panfs/e/vol0/extsrasp/psp_in_kenda_analysis/python_scripts':
@@ -13,7 +14,7 @@ elif os.getcwd() == '/home/s/S.Rasp/repositories/psp_in_kenda_analysis/python_sc
     datadir_raid2 = '/project/meteo/data/raid_linux/stephan.rasp/dwd_data/data/'
 
     radardir = '/project/meteo/w2w/A6/radolan/netcdf_cosmo_de/'
-    plotdir = '/home/s/S.Rasp/repositories/dwd_scripts/figures/'
+    plotdir = '/home/s/S.Rasp/repositories/psp_in_kenda_analysis/figures/'
     savedir_base = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/save/'
     feeddir = '/project/meteo/w2w/A6/S.Rasp/kenda_psp_data/feedback/'
 else:
@@ -38,3 +39,5 @@ cdict = {'radar': 'k',
          }
 
 pw = 7.87
+
+bin_edges = np.append(0, np.logspace(-1, 2, 10))

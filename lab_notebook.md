@@ -17,4 +17,4 @@ Tomorrow I need to adjust the precipitation forecast analysis script to read the
 ## August 26
 Task: Adjust verif_fc_prec.py for preloaded files! Add metrics
  to dictionary instead of list! Done
-Next: Add precipitation histograms
+Next: Add precipitation histograms. Need the plotting still!

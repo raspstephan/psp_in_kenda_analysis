@@ -170,6 +170,17 @@ def compute_det_stats(nanradar, nandet, convradar, convdet):
     return rmse, fss01, fss10
 
 
+def compute_prec_hist(nanfield, bin_edges):
+    """
+    Compute precipitation histograms.
+    """
+    a = np.ravel(nanfield)
+    a = a[np.isfinite(a)]
+    hist = np.histogram(a, bin_edges)[0]
+    return hist
+
+
+
 def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
                       norm_thresh=0.1, bs_threshold=1.):
     """
@@ -237,6 +248,8 @@ def make_fig_fc_ens(args, x, rd, title, it=None):
     # Loop over experiments
     for ie, expid in enumerate(args.expid):
         if ie == 0:
+            if it is None:
+                it = np.ones(rd[expid]['radar'].shape[0], dtype=bool)
             axes[0].plot(x, rd[expid]['radar'][it], c='k', lw=2, label='Radar')
         # Plot mean with error bars in first panel
         axes[0].errorbar(x, rd[expid]['ensmean'][it], yerr=rd[expid]['ensmean_std'], c=cdict[expid],
@@ -281,6 +294,8 @@ def make_fig_fc_det_rmse(args, x, rd, title, it=None):
     # Loop over experiments
     for ie, expid in enumerate(args.expid):
         if ie == 0:
+            if it is None:
+                it = np.ones(rd[expid]['radar'].shape[0], dtype=bool)
             axes[0].plot(x, rd[expid]['radar'][it], c='k', lw=2, label='Radar')
 
         axes[0].plot(x, rd[expid]['detmean'][it], c=cdict[expid], label=expid)
@@ -322,7 +337,8 @@ def make_fig_fc_det_fss(args, x, rd, title, it=None):
     # Loop over experiments
     for ie, expid in enumerate(args.expid):
         if ie == 0: 
-            print rd[expid]['radar'][it].shape
+            if it is None:
+                it = np.ones(rd[expid]['radar'].shape[0], dtype=bool)
             axes[0].plot(x, rd[expid]['radar'][it], c='k', lw=2, label='Radar')
 
         axes[0].plot(x, rd[expid]['detmean'][it], c=cdict[expid], label=expid)
@@ -348,3 +364,42 @@ def make_fig_fc_det_fss(args, x, rd, title, it=None):
     plt.tight_layout(rect=(0, 0, 1, 0.95))
 
     return fig
+
+
+def make_fig_hist(args, rd, title, it=None):
+    """
+    Plot precipitation histogram of different experiments.
+    """
+
+    x = np.arange(bin_edges.shape[0] - 1)
+    fig, ax = plt.subplots(1, 1, figsize=(pw/2, pw/2))
+
+    for ie, expid in enumerate(args.expid):
+        if ie == 0: 
+            if it is None:
+                it = np.ones(rd[expid]['radar_hist'].shape[0], dtype=bool)
+            ax.bar(x, rd[expid]['radar_hist'][it], 0.1, color='k', 
+                   label='Radar')
+
+        ax.bar(x + 0.1*(ie+1), rd[expid]['hist'][it], 0.1, 
+               color=cdict[expid], label=expid)
+    ax.set_xticks(range(bin_edges.shape[0]))
+    ax.set_xticklabels(['%.1f'%i for i in list(bin_edges)])
+    ax.set_yscale('log')
+    ax.set_xlabel('mm/h')
+    ax.legend(loc=0, fontsize=5)
+
+    plt.title(title)
+    plt.tight_layout()
+
+    return fig
+
+
+
+
+
+
+
+
+
+

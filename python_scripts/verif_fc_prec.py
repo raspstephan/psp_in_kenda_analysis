@@ -110,6 +110,8 @@ for ie, expid in enumerate(args.expid):
         detrmse_list = []
         fss01_list = []
         fss10_list = []
+        radar_hist_list = [] 
+        hist_list = []
     else:
         radar_list = []
         ensrmse_list = []
@@ -128,7 +130,8 @@ for ie, expid in enumerate(args.expid):
         if os.path.exists(savefn) and not args.recompute:
             print 'Found pre-saved data.'
             if args.ana == 'det':
-                radar, detmean, detrmse, fss01, fss10 = np.load(savefn)
+                radar, detmean, detrmse, fss01, fss10, radar_hist, hist = \
+                    np.load(savefn)
             if args.ana == 'ens':
                 radar, ensrmse, ensrmv, ensbs, ensmean, ensmean_std = \
                     np.load(savefn)
@@ -141,6 +144,8 @@ for ie, expid in enumerate(args.expid):
                 detrmse = []
                 fss01 = []
                 fss10 = []
+                radar_hist = []
+                hist = []
             else:
                 radar = []
                 ensrmse = []
@@ -170,6 +175,7 @@ for ie, expid in enumerate(args.expid):
                 nanradar[tmpmask] = np.nan
                 convradar = convolve2d(nanradar, kernel, mode='same')
                 radar.append(np.mean(radarfobj.data[~tmpmask]))
+                radar_hist.append(compute_prec_hist(nanradar, bin_edges))
                 if args.ana == 'det':
                     # Det run
                     prec_hour = prec_fields[h - 1]
@@ -181,10 +187,12 @@ for ie, expid in enumerate(args.expid):
                     nandet[tmpmask] = np.nan
                     convdet = convolve2d(nandet, kernel, mode='same')
 
-                    r = compute_det_stats(convradar, convdet, nanradar, nandet)
+                    r = compute_det_stats(nanradar, nandet, convradar, convdet)
                     detrmse.append(r[0])
                     fss01.append(r[1])
                     fss10.append(r[2])
+
+                    hist.append(compute_prec_hist(nandet, bin_edges))
 
 
                 else:
@@ -208,10 +216,15 @@ for ie, expid in enumerate(args.expid):
                     ensmean.append(r[3])
                     ensmean_std.append(r[4])
 
+            # Compute daily mean for histograms
+            radar_hist = np.mean(radar_hist, axis=0)
+            hist = np.mean(hist, axis=0)
+
             # save the data
             if args.ana == 'det':
                 print 'Save data: ', savefn
-                np.save(savefn, (radar, detmean, detrmse, fss01, fss10))
+                np.save(savefn, (radar, detmean, detrmse, fss01, fss10,
+                                 radar_hist, hist))
             else:
                 print 'Save data: ', savefn
                 np.save(savefn, (radar, ensrmse, ensrmv, ensbs, ensmean,
@@ -224,6 +237,8 @@ for ie, expid in enumerate(args.expid):
             detrmse_list.append(detrmse)
             fss01_list.append(fss01)
             fss10_list.append(fss10)
+            radar_hist_list.append(radar_hist)
+            hist_list.append(hist)
         else:
             radar_list.append(radar)
             ensrmse_list.append(ensrmse)
@@ -241,6 +256,8 @@ for ie, expid in enumerate(args.expid):
             detrmse = np.mean(detrmse_list, axis=0)
             meanfss01 = np.mean(fss01_list, axis=0)
             meanfss10 = np.mean(fss10_list, axis=0)
+            meanradarhist = np.mean(radar_hist_list, axis=0)
+            meanhist = np.mean(hist_list, axis=0)
             results_dict.update({
                 expid : {
                 'radar' : radarmean,
@@ -248,6 +265,8 @@ for ie, expid in enumerate(args.expid):
                 'detrmse' : detrmse,
                 'fss01' : meanfss01,
                 'fss10' : meanfss10,
+                'radar_hist' : meanradarhist,
+                'hist' : meanhist,
                 }
             })
         if args.ana == 'ens':
@@ -277,6 +296,8 @@ for ie, expid in enumerate(args.expid):
                 'detrmse' : np.asarray(detrmse_list),
                 'fss01' : np.asarray(fss01_list),
                 'fss10' : np.asarray(fss10_list),
+                'radar_hist' : np.asarray(radar_hist_list),
+                'hist' : np.asarray(hist_list),
                 }
             })
         else:
@@ -306,13 +327,15 @@ if args.composite:
     if args.ana == 'det':
         det_fig = make_fig_fc_det_fss(args, x, results_dict,
                                   titlestr)
-
         save_fig_and_log(det_fig, plotstr, pd)
+
+        hist_fig = make_fig_hist(args, results_dict, titlestr)
+        plotstr = 'hist_' + plotstr
+        save_fig_and_log(hist_fig, plotstr, pd)
 
     else:
 
         ens_fig = make_fig_fc_ens(args, x, results_dict, titlestr)
-
         save_fig_and_log(ens_fig, plotstr, pd)
 
     plt.close('all')
@@ -332,6 +355,9 @@ else:
 
             save_fig_and_log(det_fig, plotstr, pd)
 
+            hist_fig = make_fig_hist(args, results_dict, date[:-4], it)
+            plotstr = 'hist_' + plotstr
+            save_fig_and_log(hist_fig, plotstr, pd)
         else:
 
             ens_fig = make_fig_fc_ens(args, x, results_dict, date[:-4], it)
