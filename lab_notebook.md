@@ -15,4 +15,6 @@ Preloading done in ipynb, currently running for forecasts, det and ens.
 Tomorrow I need to adjust the precipitation forecast analysis script to read the preloaded files. 
 
 ## August 26
-Task: Adjust verif_fc_prec.py for preloaded files! Add metrics to dictionary instead of list!
+Task: Adjust verif_fc_prec.py for preloaded files! Add metrics
+ to dictionary instead of list! Done
+Next: Add precipitation histograms

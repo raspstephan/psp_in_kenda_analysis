@@ -222,7 +222,7 @@ def compute_bs(obs, enslist, threshold):
     return bs
 
 
-def make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, rmse, rmv, bs, title):
+def make_fig_fc_ens(args, x, rd, title, it=None):
     """
     Plot ensemble panels: 
     1. Mean precipitation with ensemble error bars
@@ -234,22 +234,20 @@ def make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, rmse, rmv, bs, title):
     # Set up figure
     fig, axes = plt.subplots(1, 3, figsize=(pw, aspect * pw))
 
-    # Plot radar in first panel
-    axes[0].plot(x, radar[0], c='k', lw=2, label='Radar')
-
     # Loop over experiments
     for ie, expid in enumerate(args.expid):
-
+        if ie == 0:
+            axes[0].plot(x, rd[expid]['radar'][it], c='k', lw=2, label='Radar')
         # Plot mean with error bars in first panel
-        axes[0].errorbar(x, ensmean[ie], yerr=ensmean_std[ie], c=cdict[expid],
+        axes[0].errorbar(x, rd[expid]['ensmean'][it], yerr=rd[expid]['ensmean_std'], c=cdict[expid],
                          label=expid)
 
         # Plot RMSE and RMV in second plot
-        axes[1].plot(x, rmse[ie], lw=1.5, c=cdict[expid])
-        axes[1].plot(x, rmv[ie], lw=1.5, c=cdict[expid], ls='--')
+        axes[1].plot(x, rd[expid]['ensrmse'][it], lw=1.5, c=cdict[expid])
+        axes[1].plot(x, rd[expid]['ensrmv'][it], lw=1.5, c=cdict[expid], ls='--')
 
         # Plot Brier Score in thrid panel
-        axes[2].plot(x, bs[ie], lw=1.5, c=cdict[expid])
+        axes[2].plot(x, rd[expid]['ensbs'][it], lw=1.5, c=cdict[expid])
 
     # Define labels
     axes[0].set_title('Mean precip pm std')
@@ -269,7 +267,7 @@ def make_fig_fc_ens(args, x, radar, ensmean, ensmean_std, rmse, rmv, bs, title):
     return fig
 
 
-def make_fig_fc_det_rmse(args, x, radar, meanprec, rmse, fss, title):
+def make_fig_fc_det_rmse(args, x, rd, title, it=None):
     """
     Plot deterministic panels.
     1. Mean precipitation
@@ -280,20 +278,16 @@ def make_fig_fc_det_rmse(args, x, radar, meanprec, rmse, fss, title):
     # Set up figure
     fig, axes = plt.subplots(1, 3, figsize=(pw, aspect * pw))
 
-    # Plot radar in first panel
-    axes[0].plot(x, radar[0], c='k', lw=2, label='Radar')
-
     # Loop over experiments
     for ie, expid in enumerate(args.expid):
+        if ie == 0:
+            axes[0].plot(x, rd[expid]['radar'][it], c='k', lw=2, label='Radar')
 
-        # Mean precipitation in first panel
-        axes[0].plot(x, meanprec[ie], c=cdict[expid], label=expid)
+        axes[0].plot(x, rd[expid]['detmean'][it], c=cdict[expid], label=expid)
 
-        # RMSE in second panel
-        axes[1].plot(x, rmse[ie], c=cdict[expid])
+        axes[1].plot(x, rd[expid]['detrmse'][it], c=cdict[expid])
 
-        # FSS in third panel
-        axes[2].plot(x, fss[ie], c=cdict[expid])
+        axes[2].plot(x, rd[expid]['fss10'][it], c=cdict[expid])
 
     # Define labels
     axes[0].set_title('Mean precip')
@@ -314,7 +308,7 @@ def make_fig_fc_det_rmse(args, x, radar, meanprec, rmse, fss, title):
     return fig
 
 
-def make_fig_fc_det_fss(args, x, radar, meanprec, fss01, fss10, title):
+def make_fig_fc_det_fss(args, x, rd, title, it=None):
     """
     Plot deterministic panels.
     1. Mean precipitation
@@ -325,20 +319,17 @@ def make_fig_fc_det_fss(args, x, radar, meanprec, fss01, fss10, title):
     # Set up figure
     fig, axes = plt.subplots(1, 3, figsize=(pw, aspect * pw))
 
-    # Plot radar in first panel
-    axes[0].plot(x, radar[0], c='k', lw=2, label='Radar')
-
     # Loop over experiments
     for ie, expid in enumerate(args.expid):
+        if ie == 0: 
+            print rd[expid]['radar'][it].shape
+            axes[0].plot(x, rd[expid]['radar'][it], c='k', lw=2, label='Radar')
 
-        # Mean precipitation in first panel
-        axes[0].plot(x, meanprec[ie], c=cdict[expid], label=expid)
+        axes[0].plot(x, rd[expid]['detmean'][it], c=cdict[expid], label=expid)
 
-        # RMSE in second panel
-        axes[1].plot(x, fss01[ie], c=cdict[expid])
+        axes[1].plot(x, rd[expid]['fss01'][it], c=cdict[expid])
 
-        # FSS in third panel
-        axes[2].plot(x, fss10[ie], c=cdict[expid])
+        axes[2].plot(x, rd[expid]['fss10'][it], c=cdict[expid])
 
     # Define labels
     axes[0].set_title('Mean precip')

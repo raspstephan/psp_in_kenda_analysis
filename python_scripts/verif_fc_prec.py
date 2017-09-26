@@ -93,7 +93,7 @@ kernel = (np.ones((args.n_kernel, args.n_kernel)) /
 
 
 expid_str = ''
-exp_list = []
+results_dict = {}
 for ie, expid in enumerate(args.expid):
     print 'expid = ', expid
     expid_str += expid + '_'
@@ -241,7 +241,15 @@ for ie, expid in enumerate(args.expid):
             detrmse = np.mean(detrmse_list, axis=0)
             meanfss01 = np.mean(fss01_list, axis=0)
             meanfss10 = np.mean(fss10_list, axis=0)
-            exp_list.append([radarmean, detmean, detrmse, meanfss01, meanfss10])
+            results_dict.update({
+                expid : {
+                'radar' : radarmean,
+                'detmean' : detmean,
+                'detrmse' : detrmse,
+                'fss01' : meanfss01,
+                'fss10' : meanfss10,
+                }
+            })
         if args.ana == 'ens':
             radarmean = np.mean(radar_list, axis=0)
             ensrmse = np.mean(ensrmse_list, axis=0)
@@ -249,18 +257,40 @@ for ie, expid in enumerate(args.expid):
             ensbs = np.mean(ensbs_list, axis=0)
             ensmean = np.mean(ensmean_list, axis=0)
             ensmean_std = np.mean(ensmean_std_list, axis=0)
-            exp_list.append([radarmean, ensrmse, ensrmv, ensbs, ensmean,
-                             ensmean_std])
+            results_dict.update({
+                expid : {
+                'radar' : radarmean,
+                'ensrmse' : ensrmse,
+                'ensrmv' : ensrmv,
+                'ensbs' : ensbs,
+                'ensmean' : ensmean,
+                'ensmean_std' : ensmean_std,
+                }
+            })
 
     else:
         if args.ana == 'det':
-            exp_list.append([radar_list, detmean_list, detrmse_list,
-                             fss01_list, fss10_list])
+            results_dict.update({
+                expid : {
+                'radar' : np.asarray(radar_list),
+                'detmean' : np.asarray(detmean_list),
+                'detrmse' : np.asarray(detrmse_list),
+                'fss01' : np.asarray(fss01_list),
+                'fss10' : np.asarray(fss10_list),
+                }
+            })
         else:
-            exp_list.append([radar_list, ensrmse_list, ensrmv_list, ensbs_list,
-                             ensmean_list, ensmean_std_list])
+            results_dict.update({
+                expid : {
+                'radar' : np.asarray(radar_list),
+                'ensrmse' : np.asarray(ensrmse_list),
+                'ensrmv' : np.asarray(ensrmv_list),
+                'ensbs' : np.asarray(ensbs_list),
+                'ensmean' : np.asarray(ensmean_list),
+                'ensmean_std' : np.asarray(ensmean_std_list),
+                }
+            })
 
-exp_list = np.array(exp_list)
 
 # Now plot!
 # Set up figure
@@ -274,25 +304,14 @@ if args.composite:
     if not os.path.exists(pd): os.makedirs(pd)
 
     if args.ana == 'det':
-        radar = exp_list[:, 0]
-        meanprec = exp_list[:, 1]
-        rmse = exp_list[:, 2]
-        fss01 = exp_list[:, 3]
-        fss10 = exp_list[:, 4]
-        det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, fss01, fss10,
+        det_fig = make_fig_fc_det_fss(args, x, results_dict,
                                   titlestr)
 
         save_fig_and_log(det_fig, plotstr, pd)
 
     else:
-        radar = exp_list[:, 0]
-        ensmean = exp_list[:, 4]
-        ensmean_std = exp_list[:, 5]
-        ensrmse = exp_list[:, 1]
-        ensrmv = exp_list[:, 2]
-        ensbs = exp_list[:, 3]
-        ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std,
-                                  ensrmse, ensrmv, ensbs, titlestr)
+
+        ens_fig = make_fig_fc_ens(args, x, results_dict, titlestr)
 
         save_fig_and_log(ens_fig, plotstr, pd)
 
@@ -308,28 +327,14 @@ else:
             os.makedirs(pd)
 
         if args.ana == 'det':
-            radar = exp_list[:, 0, it]
-            meanprec = exp_list[:, 1, it]
-            rmse = exp_list[:, 2, it]
-            fss01 = exp_list[:, 3, it]
-            fss10 = exp_list[:, 4, it]
 
-            det_fig = make_fig_fc_det_fss(args, x, radar, meanprec, fss01,
-                                          fss10, date[:-4])
+            det_fig = make_fig_fc_det_fss(args, x, results_dict, date[:-4], it)
 
             save_fig_and_log(det_fig, plotstr, pd)
 
         else:
-            radar = exp_list[:, 0, it]
-            ensmean = exp_list[:, 4, it]
-            ensmean_std = exp_list[:, 5, it]
-            ensrmse = exp_list[:, 1, it]
-            ensrmv = exp_list[:, 2, it]
-            ensbs = exp_list[:, 3, it]
-            print ensmean.shape
-            print ensmean_std.shape
-            ens_fig = make_fig_fc_ens(args, x, radar, ensmean, ensmean_std,
-                                      ensrmse, ensrmv, ensbs, date[:-4])
+
+            ens_fig = make_fig_fc_ens(args, x, results_dict, date[:-4], it)
 
             save_fig_and_log(ens_fig, plotstr, pd)
 
