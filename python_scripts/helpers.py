@@ -452,7 +452,7 @@ def handle_nans(radar_data, fc_data):
     Returns:
         radar_data, fc_data: Same arrays with NaNs 
     """
-    mask = np.
+    #mask = np.
 
     return radar_data, fc_data
 
