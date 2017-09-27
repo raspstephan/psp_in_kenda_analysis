@@ -27,3 +27,15 @@ Continue tomorrow:
 - Start splitting basic metrics and putting plots in latex file!
 
 ## August 27
+
+ToDo:
+- finish CRPS
+    - Plot
+    - Run for all days
+- Fix histograms
+    - Rescale
+- Look at CAPE/CIN
+
+I did not actually manage to do any of these things but I created a good framework for my analysis.
+
+Another ToDo is the missing values for the noDA run!
