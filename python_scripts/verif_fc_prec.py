@@ -5,15 +5,9 @@ Stephan Rasp
 """
 # Imports
 import argparse
-import os
-import numpy as np
-from datetime import timedelta
 from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, make_timelist, \
     yyyymmddhhmmss, ddhhmmss
-from scipy.stats import binned_statistic
-import matplotlib.pyplot as plt
 from scipy.signal import convolve2d
-from cosmo_utils.scores.probab import FSS
 from helpers import *
 from config import *  # Import config file
 
@@ -250,7 +244,6 @@ for ie, expid in enumerate(args.expid):
             ensmean_list.append(ensmean)
             ensmean_std_list.append(ensmean_std)
             crps_list.append(crps)
-
 
     if args.composite:
         # Bin the data

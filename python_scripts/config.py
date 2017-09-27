@@ -41,3 +41,11 @@ cdict = {'radar': 'k',
 pw = 7.87
 
 bin_edges = np.append(0, np.logspace(-1, 2, 10))
+
+
+metric_dict = {
+    'det_rmse': {
+        'var': 'prec',
+        'full_name': 'Deterministic RMSE',
+    }
+}

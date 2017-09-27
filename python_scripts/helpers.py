@@ -3,13 +3,12 @@ Helper functions for my KENDA scripts
 
 """
 import sys
-from datetime import datetime
+from datetime import datetime, timedelta
 from subprocess import check_output
 from git import Repo
 from cosmo_utils.pywgrib import getfobj_ens, getfobj
 from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, ddhhmmss_strtotime, \
     yymmddhhmm
-from datetime import timedelta
 from config import *  # Import config file
 from cosmo_utils.pyncdf import getfobj_ncdf
 import numpy as np
@@ -17,6 +16,7 @@ import matplotlib.pyplot as plt
 from cosmo_utils.scores.probab import FSS
 sys.path.append('/home/s/S.Rasp/repositories/enstools/')
 from enstools.scores import crps_sample
+
 
 def save_fig_and_log(fig, fig_name, plot_dir):
     """
@@ -408,8 +408,69 @@ def make_fig_hist(args, rd, title, it=None):
     return fig
 
 
+def make_timelist(date_start, date_stop, hours_inc):
+    """
+    
+    Args:
+        date_start: yyyymmddhhmmss time string
+        date_stop: yyyymmddhhmmss time string
+        hour_inc: increment in h
+
+    Returns:
+        timelist: List with datetime objects
+    """
+    dt_start = yyyymmddhhmmss_to_dt(date_start)
+    dt_stop = yyyymmddhhmmss_to_dt(date_stop)
+    td_inc = timedelta(hours=hours_inc)
+
+    timelist = []
+    t = dt_start
+    while t <= dt_stop:
+        timelist.append(t)
+        t += td_inc
+    return timelist
 
 
+def yyyymmddhhmmss_to_dt(yyyymmddhhmmss):
+    f = '%Y%m%d%H%M%S'
+    return datetime.strptime(yyyymmddhhmmss, f)
+
+
+def dt_to_yyyymmddhhmmss(dt):
+    f = '%Y%m%d%H%M%S'
+    return datetime.strftime(dt, f)
+
+
+def handle_nans(radar_data, fc_data):
+    """Handle NaNs on a daily basis.
+    
+    Args:
+        radar_data: Radar data array with dimensions [time, x, y]
+        fc_data: Forecast data array with dimensions [time, x, y] or 
+                 [time, ens, x, y]
+
+    Returns:
+        radar_data, fc_data: Same arrays with NaNs 
+    """
+    mask = np.
+
+    return radar_data, fc_data
+
+
+# New compute_*metric* functions
+# These work with input of dimension [hour, x, y] or [hour, ens, x, y]
+def compute_rmse(radar_data, fc_data):
+    """
+    
+    Args:
+        radar_data: 
+        fc_data: 
+
+    Returns:
+        rmse: Numpy array with dimensions [hour]
+    """
+    rmse = np.sqrt(np.nanmean((radar_data - fc_data) ** 2, axis=(1, 2)))
+    return rmse
 
 
 

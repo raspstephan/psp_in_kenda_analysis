@@ -19,9 +19,11 @@ Adjusted verif_fc_prec.py to use preloaded precipitation files. Added basic prec
 
 Note: I mixed up convolved and not-convolved fields for FSS and RMSE for my previous plots. 
 
-The preloading of the noDA_PSPv2 fields is not finished.
+The preloading of the noDA_PSPv2 fields is not finished. This is because some files are missing (12UTC + 12h mem 16 26 May)
 
 Continue tomorrow:
 - Finish CRPS implementation and compute all fields. 
 - Check DA_REF det run and see whether SYNOP data is there
 - Start splitting basic metrics and putting plots in latex file!
+
+## August 27
