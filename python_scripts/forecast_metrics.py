@@ -11,37 +11,41 @@ import config
 import helpers as h
 
 
-
+# Intermediate functions
 def compute_metric(inargs, exp_id, date):
     """Actually computes the metric for one exp_id and date.
     NaNs are handled on a daily basis
     
     Args:
-        inargs: 
-        exp_id: 
-        date: 
+        inargs: Command line arguments
+        exp_id: Experiment ID string
+        date: datetime object
 
     Returns:
         metric: Numpy array with dimensions [time, metric_dim]
     """
 
     # Load presaved forecast data
-    fc_data = ???
-    # Load presaved radar data
-    radar_data = ???
+    date_str = h.dt_to_yyyymmddhhmmss(date)
+    fc_fn = (config.savedir_base + exp_id + '/prec_fields/' +
+             config.metric_dict[inargs.metric]['det_or_ens'] + '_' +
+             date_str + '.npy')
+    fc_data = np.load(fc_fn)
 
-    # Handle NaNs
-    radar_data, fc_data = h.handle_nans(radar_data, fc_data)
+    if config.metric_dict[inargs.metric]['use_radar']:
+        radar_fn = (config.savedir_base + 'radar/prec_fields/' + 'radar_' +
+                    date_str + '.npy')
+        radar_data = np.load(radar_fn)
+        radar_data, fc_data = h.handle_nans(radar_data, fc_data,
+                                            inargs.radar_thresh)
 
     # Pass data to
-    if inargs.metric == 'rmse':
-        m = h.compute_rmse(radar_data, fc_data)
+    if inargs.metric == 'det_rmse':
+        m = h.compute_det_rmse(radar_data, fc_data)
     else:
         raise ValueError('Metric %s does not exist.' % inargs.metric)
 
     return m
-
-
 
 
 def get_metric_for_one_day(inargs, exp_id, date):
@@ -60,7 +64,7 @@ def get_metric_for_one_day(inargs, exp_id, date):
 
     # Create savestr
     save_fn = (config.savedir_base + exp_id + '/' + inargs.metric + '_' +
-               h.dt_to_yyyymmddhhmmss(date))
+               h.dt_to_yyyymmddhhmmss(date) + '.npy')
 
     # Check if save_fn exists or recompute
     print 'Check if pre-computed file exists: %s' % save_fn
@@ -92,11 +96,31 @@ def get_metric_for_all_dates(inargs, exp_id):
     return np.array(date_list)
 
 
+# Plotting functions
+def plot_panel(inargs, plot_list, title_str):
+    """
+    
+    Args:
+        inargs: Command line arguments
+        plot_list: List of metrics [exp_id][time, metric_dim]
+    """
+
+    if config.metric_dict[inargs.metric]['plot_type'] == 'line':
+        fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric, title_str)
+    else:
+        raise ValueError('Plot type %s does not exist.' %
+                         config.metric_dict[inargs.metric]['plot_type'])
+    plot_dir = config.plotdir + '/forecast_metrics/'
+    plot_str = inargs.metric + '_' + title_str
+    h.save_fig_and_log(fig, plot_str, plot_dir)
+
+
 # Main program
 def main(inargs):
-    """
-    Parameters:
-        
+    """Main program
+    
+    Args:
+        inargs: Command line arguments
     """
     # Loop over exp_ids and collect data in list
     results_list = []
@@ -105,12 +129,16 @@ def main(inargs):
 
     if inargs.composite:
         plot_list = [np.nanmean(r, axis=0) for r in results_list]
-        plot_panel(plot_list)
+        title_str = args.date_start[:-4] + '-' + args.date_stop[:-4]
+        plot_panel(inargs, plot_list, title_str)
 
     else:
-        for idate, date in enumerate(???):
+        for idate, date in enumerate(h.make_timelist(inargs.date_start,
+                                                     inargs.date_stop,
+                                                     inargs.hours_inc)):
             plot_list = [r[idate] for r in results_list]
-            plot_panel(plot_list)
+            title_str = args.date_start[:-4]
+            plot_panel(inargs, plot_list, title_str)
 
 
 if __name__ == '__main__':
@@ -143,6 +171,11 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Composite over all days')
     parser.set_defaults(composite=False)
+    parser.add_argument('--radar_thresh',
+                        type=float,
+                        default=100.,
+                        help='Radar values above threshold will be set to nan.'
+                             'Default = 100.')
 
     args = parser.parse_args()
 

@@ -24,6 +24,8 @@ def save_fig_and_log(fig, fig_name, plot_dir):
     """
 
     # Step 1: save figure
+    if not os.path.exists(plot_dir):
+        os.mkdir(plot_dir)
     print('Saving figure: %s' % (plot_dir + '/' + fig_name + '.pdf'))
     fig.savefig(plot_dir + '/' + fig_name + '.pdf')
 
@@ -441,30 +443,35 @@ def dt_to_yyyymmddhhmmss(dt):
     return datetime.strftime(dt, f)
 
 
-def handle_nans(radar_data, fc_data):
+def handle_nans(radar_data, fc_data, radar_thresh):
     """Handle NaNs on a daily basis.
     
     Args:
         radar_data: Radar data array with dimensions [time, x, y]
         fc_data: Forecast data array with dimensions [time, x, y] or 
                  [time, ens, x, y]
+        radar_thresh: Threshold, NaNs above.
 
     Returns:
         radar_data, fc_data: Same arrays with NaNs 
     """
-    #mask = np.
-
+    mask = np.max(radar_data, axis=0) > radar_thresh
+    radar_data[:, mask] = np.nan
+    if fc_data.ndim == 3:
+        fc_data[:, mask] = np.nan
+    else:
+        fc_data[:, :, mask] = np.nan
     return radar_data, fc_data
 
 
 # New compute_*metric* functions
 # These work with input of dimension [hour, x, y] or [hour, ens, x, y]
-def compute_rmse(radar_data, fc_data):
-    """
+def compute_det_rmse(radar_data, fc_data):
+    """Compute deterministic rmse
     
     Args:
-        radar_data: 
-        fc_data: 
+        radar_data: Radar data
+        fc_data: forecast data
 
     Returns:
         rmse: Numpy array with dimensions [hour]
@@ -473,6 +480,31 @@ def compute_rmse(radar_data, fc_data):
     return rmse
 
 
+# Panel plotting functions
+def plot_line(plot_list, exp_ids, metric, title):
+    """
+    
+    Args:
+        plot_list: List of metrics [exp_id][time, metric_dim]
+
+    Returns:
+        fig: Figure object
+    """
+
+    fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, 0.5 * pw))
+
+    x = np.arange(1, 25)
+    for ie, e in enumerate(exp_ids):
+        ax.plot(x, plot_list[ie], c=cdict[e], label=e)
+
+    ax.set_xlabel('Forecast lead time [h]')
+    ax.set_ylabel(metric_dict[metric]['ylabel'])
+    ax.set_title(title)
+    ax.legend(loc=0, fontsize=6)
+
+    plt.tight_layout()
+
+    return fig
 
 
 

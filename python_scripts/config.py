@@ -47,5 +47,10 @@ metric_dict = {
     'det_rmse': {
         'var': 'prec',
         'full_name': 'Deterministic RMSE',
+        'use_radar': True,
+        'det_or_ens': 'det',
+        'plot_type': 'line',
+        'plot_radar': False,
+        'ylabel': 'RMSE [mm/h]',
     }
 }
