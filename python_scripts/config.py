@@ -76,6 +76,14 @@ metric_dict = {
         'plot_type': 'line',
         'ylabel': 'FSS',
     },
+    'det_prec_hist': {
+        'var': 'prec',
+        'full_name': 'Deterministic precipitation histogram',
+        'use_radar': True,
+        'det_or_ens': 'det',
+        'plot_type': 'hist',
+        'ylabel': 'Frequency',
+    },
     'ens_crps': {
         'var': 'prec',
         'full_name': 'Ensemble CRPS',
@@ -83,5 +91,5 @@ metric_dict = {
         'det_or_ens': 'ens',
         'plot_type': 'line',
         'ylabel': 'CRPS',
-    }
+    },
 }

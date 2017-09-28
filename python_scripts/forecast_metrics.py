@@ -58,6 +58,8 @@ def compute_metric(inargs, exp_id, date):
         config.metric_dict[inargs.metric.split('-')[0]]['ylabel'] = \
             'FSS ' + str(fss_thresh) + 'mm/h ' + str(fss_size * 2.8) + 'km'
         m = h.compute_det_fss(radar_data, fc_data, fss_thresh, fss_size)
+    elif inargs.metric == 'det_prec_hist':
+        m = h.compute_det_prec_hist(fc_data)
     elif inargs.metric == 'ens_crps':
         m = h.compute_ens_crps(radar_data, fc_data)
     else:
@@ -126,6 +128,9 @@ def plot_panel(inargs, plot_list, title_str):
     if config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'line':
         fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
                           title_str)
+    elif config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'hist':
+        fig = h.plot_hist(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
+                          title_str, inargs.hist_normalize)
     else:
         raise ValueError('Plot type %s does not exist.' %
                          config.metric_dict[inargs.metric.split('-')[0]]
@@ -197,6 +202,11 @@ if __name__ == '__main__':
                         default=100.,
                         help='Radar values above threshold will be set to nan.'
                              'Default = 100.')
+    parser.add_argument('--hist_normalize',
+                        dest='hist_normalize',
+                        action='store_true',
+                        help='Normalize histogram by all precipitation points')
+    parser.set_defaults(hist_normalize=False)
 
     args = parser.parse_args()
 

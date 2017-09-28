@@ -87,8 +87,8 @@ def load_det_cape_cin(datadir, date, t, return_array=False):
     topdir = datadir + '/' + date + '/'
     gribfn = gribpref + t + precsuf
     detfn = topdir + 'det/' + gribfn
-    capefobj = getfobj(detfn, fieldn='CAPE_ML')
-    cinfobj = getfobj(detfn, fieldn='CIN_ML')
+    capefobj = getfobj(detfn, fieldn='CAPE_ML_S')
+    cinfobj = getfobj(detfn, fieldn='CIN_ML_S')
     # Minus one hour
     # gribfnm1 = gribpref + ddhhmmss(ddhhmmss_strtotime(t) -
     # timedelta(hours = 1)) + precsuf
@@ -549,12 +549,33 @@ def compute_ens_crps(radar_data, fc_data):
     return np.array(l)
 
 
+def compute_det_prec_hist(data):
+    """Compute deterministic preciitation histogram
+
+    Args:
+        data: data
+
+    Returns:
+        mean: Numpy array with dimensions [hour]
+    """
+
+    l = []
+    for i in range(data.shape[0]):
+        d = np.ravel(data[i])
+        d = d[np.isfinite(d)]
+        l.append(np.histogram(d, bin_edges)[0])
+    return np.array(l)
+
+
 # Panel plotting functions
 def plot_line(plot_list, exp_ids, metric, title):
-    """
+    """Plot line plot panel
     
     Args:
         plot_list: List of metrics [exp_id][time, metric_dim]
+        exp_ids: List with exp id names
+        metric: name of metric
+        title: title string
 
     Returns:
         fig: Figure object
@@ -578,5 +599,43 @@ def plot_line(plot_list, exp_ids, metric, title):
     return fig
 
 
+def plot_hist(plot_list, exp_ids, metric, title, normalize=False):
+    """Plot histogram panel.
+    At the moment the first bin containing all the 0s is ignored.
 
+    Args:
+        plot_list: List of metrics [exp_id][time, metric_dim]
+        exp_ids: List with exp id names
+        metric: name of metric
+        title: title string
+
+    Returns:
+        fig: Figure object
+    """
+
+    fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, 0.5 * pw))
+
+    x = np.arange(bin_edges[1:].shape[0] - 1)
+    for ie, e in enumerate(exp_ids):
+        p = np.mean(plot_list[ie], axis=0)[1:]
+        if normalize:
+            p = p / np.sum(p)
+        ax.bar(x + 0.1 * ie, p, 0.1, color=cdict[e], label=e)
+
+    ax.set_xticks(range(bin_edges[1:].shape[0]))
+    ax.set_xticklabels(['%.1f' % i for i in list(bin_edges[1:])],
+                       fontsize=5)
+    ax.set_xlabel('mm/h')
+    ax.set_ylabel(metric_dict[metric]['ylabel'])
+    ax.set_title(title)
+    ax.legend(loc=0, fontsize=6)
+
+    ax.spines['right'].set_visible(False)
+    ax.spines['top'].set_visible(False)
+    ax.spines['left'].set_position(('outward', 3))
+    ax.spines['bottom'].set_position(('outward', 3))
+
+    plt.tight_layout()
+
+    return fig
 
