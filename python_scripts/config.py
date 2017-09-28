@@ -59,5 +59,21 @@ metric_dict = {
         'det_or_ens': 'det',
         'plot_type': 'line',
         'ylabel': 'Precipitation [mm/h]',
+    },
+    'det_mean_cape': {
+        'var': 'cape',
+        'full_name': 'Deterministic mean CAPE',
+        'use_radar': False,
+        'det_or_ens': 'det',
+        'plot_type': 'line',
+        'ylabel': 'CAPE [J/kg]',
+    },
+    'det_fss': {
+        'var': 'prec',
+        'full_name': 'Deterministic FSS',
+        'use_radar': False,
+        'det_or_ens': 'det',
+        'plot_type': 'line',
+        'ylabel': 'FSS',
     }
 }

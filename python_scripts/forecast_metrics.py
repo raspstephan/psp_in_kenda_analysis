@@ -33,11 +33,11 @@ def compute_metric(inargs, exp_id, date):
         fc_data = np.load(radar_fn)
     else:
         fc_fn = (config.savedir_base + exp_id + '/prec_fields/' +
-                 config.metric_dict[inargs.metric]['det_or_ens'] + '_' +
-                 date_str + '.npy')
+                 config.metric_dict[inargs.metric.split('-')[0]]['det_or_ens'] +
+                 '_' + date_str + '.npy')
         fc_data = np.load(fc_fn)
 
-    if config.metric_dict[inargs.metric]['use_radar']:
+    if config.metric_dict[inargs.metric.split('-')[0]]['use_radar']:
         # Load presaved radar data
         radar_fn = (config.savedir_base + 'radar/prec_fields/' + 'radar_' +
                     date_str + '.npy')
@@ -50,6 +50,15 @@ def compute_metric(inargs, exp_id, date):
         m = h.compute_det_mean_prec(fc_data)
     elif inargs.metric == 'det_rmse':
         m = h.compute_det_rmse(radar_data, fc_data)
+    elif 'det_fss' in inargs.metric:
+        # Parse
+        _, fss_thresh, fss_size = inargs.metric.split('-')
+        fss_thresh = float(fss_thresh) / 10.
+        fss_size = int(fss_size)
+        # Update dictionary
+        config.metric_dict[inargs.metric.split('-')[0]]['ylabel'] = \
+            'FSS ' + str(fss_thresh) + 'mm/h ' + str(fss_size * 2.8) + 'km'
+        m = h.compute_det_fss(radar_data, fc_data, fss_thresh, fss_size)
     else:
         raise ValueError('Metric %s does not exist.' % inargs.metric)
 
@@ -113,11 +122,13 @@ def plot_panel(inargs, plot_list, title_str):
         plot_list: List of metrics [exp_id][time, metric_dim]
     """
 
-    if config.metric_dict[inargs.metric]['plot_type'] == 'line':
-        fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric, title_str)
+    if config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'line':
+        fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
+                          title_str)
     else:
         raise ValueError('Plot type %s does not exist.' %
-                         config.metric_dict[inargs.metric]['plot_type'])
+                         config.metric_dict[inargs.metric.split('-')[0]]
+                         ['plot_type'])
     exp_id_str = '_'.join([e for e in inargs.exp_id if not e == 'radar'])
     plot_dir = config.plotdir + '/' + exp_id_str + '/forecast_metrics/'
     plot_str = inargs.metric + '_' + title_str

@@ -83,6 +83,24 @@ def load_det(datadir, date, t, return_array=False):
         return detfobj
 
 
+def load_det_cape_cin(datadir, date, t, return_array=False):
+    topdir = datadir + '/' + date + '/'
+    gribfn = gribpref + t + precsuf
+    detfn = topdir + 'det/' + gribfn
+    capefobj = getfobj(detfn, fieldn='CAPE_ML')
+    cinfobj = getfobj(detfn, fieldn='CIN_ML')
+    # Minus one hour
+    # gribfnm1 = gribpref + ddhhmmss(ddhhmmss_strtotime(t) -
+    # timedelta(hours = 1)) + precsuf
+    # detfnm1 = topdir + 'det/' + gribfnm1
+    # detfobjm1 = getfobj(detfnm1, fieldn = 'TOT_PREC')
+    # detfobj.data = detfobj.data - detfobjm1.data
+    if return_array:
+        return capefobj.data, cinfobj.data
+    else:
+        return capefobj, cinfobj
+
+
 def load_radar(date, t='00000000', return_array=False):
     dateobj = (yyyymmddhhmmss_strtotime(date) + ddhhmmss_strtotime(t))
     radardt = timedelta(minutes=10)  # TODO Is this correct???
@@ -490,6 +508,24 @@ def compute_det_mean_prec(data):
     """
     mean = np.nanmean(data, axis=(1, 2))
     return mean
+
+
+def compute_det_fss(radar_data, fc_data, fss_thresh, fss_size):
+    """Compute deterministic rmse
+
+    Args:
+        radar_data: Radar data
+        fc_data: forecast data
+        fss_thresh : Threshold value in mm/h
+        fss_size: Neighborhood size in grid points
+    Returns:
+        rmse: Numpy array with dimensions [hour]
+    """
+    l = []
+    for i in range(radar_data.shape[0]):
+        l.append(FSS(fss_thresh, fss_size, radar_data[i], fc_data[i],
+                     python_core=True))
+    return np.array(l)
 
 
 # Panel plotting functions
