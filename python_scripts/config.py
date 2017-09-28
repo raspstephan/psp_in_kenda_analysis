@@ -132,4 +132,20 @@ metric_dict = {
         'plot_type': 'line',
         'ylabel': 'CRPS',
     },
+    'ens_rmse': {
+        'var': 'prec',
+        'full_name': 'RMSE of ensemble mean',
+        'use_radar': True,
+        'det_or_ens': 'ens',
+        'plot_type': 'line',
+        'ylabel': 'RMSE [mm/h]',
+    },
+    'ens_rmv': {
+        'var': 'prec',
+        'full_name': 'RMV of ensemble',
+        'use_radar': False,
+        'det_or_ens': 'ens',
+        'plot_type': 'line',
+        'ylabel': 'RMV [mm/h]',
+    },
 }

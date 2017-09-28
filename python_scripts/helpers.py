@@ -589,6 +589,34 @@ def compute_ens_crps(radar_data, fc_data):
     return np.array(l)
 
 
+def compute_ens_rmse(radar_data, fc_data):
+    """Compute RMSE of ensemble mean
+
+    Args:
+        radar_data: Radar data [hour, x, y]
+        fc_data: forecast data of ensemble [hour, ens, x, y]
+
+    Returns:
+        rmse: Numpy array with dimensions [hour]
+    """
+    ens_mean = np.mean(fc_data, axis=1)
+    rmse = np.sqrt(np.nanmean(radar_data - ens_mean, axis=(1, 2)))
+    return rmse
+
+
+def compute_ens_rmv(fc_data):
+    """Compute Ensemble root mean variance
+
+    Args:
+        fc_data: forecast data of ensemble [hour, ens, x, y]
+
+    Returns:
+        rmv: Numpy array with dimensions [hour]
+    """
+    rmv = np.sqrt(np.nanmean(np.var(fc_data, axis=1, ddof=1), axis=(1,2)))
+    return rmv
+
+
 def compute_det_prec_hist(data):
     """Compute deterministic preciitation histogram
 
@@ -657,8 +685,8 @@ def plot_sal(plot_list, exp_ids, metric, title):
     x = np.arange(1, 25)
     for ie, e in enumerate(exp_ids):
         ax.plot(x, plot_list[ie][0], c=cdict[e], label=e)
-        ax.plot(x, plot_list[ie][1], c=cdict[e], label=e, linestyle='--')
-        ax.plot(x, plot_list[ie][2], c=cdict[e], label=e, linestyle=':')
+        ax.plot(x, plot_list[ie][1], c=cdict[e], linestyle='--')
+        ax.plot(x, plot_list[ie][2], c=cdict[e], linestyle=':')
 
     ax.axhline(0, c='gray', zorder=0.1)
     ax.set_xlabel('Forecast lead time [h]')

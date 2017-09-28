@@ -71,6 +71,10 @@ def compute_metric(inargs, exp_id, date):
         m = h.compute_det_fss(radar_data, fc_data, fss_thresh, fss_size)
     elif inargs.metric == 'det_prec_hist':
         m = h.compute_det_prec_hist(fc_data)
+    elif inargs.metric == 'ens_rmse':
+        m = h.compute_ens_rmse(radar_data, fc_data)
+    elif inargs.metric == 'ens_rmv':
+        m = h.compute_ens_rmv(fc_data)
     elif inargs.metric == 'ens_crps':
         m = h.compute_ens_crps(radar_data, fc_data)
     else:
