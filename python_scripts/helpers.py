@@ -25,7 +25,7 @@ def save_fig_and_log(fig, fig_name, plot_dir):
 
     # Step 1: save figure
     if not os.path.exists(plot_dir):
-        os.mkdir(plot_dir)
+        os.makedirs(plot_dir)
     print('Saving figure: %s' % (plot_dir + '/' + fig_name + '.pdf'))
     fig.savefig(plot_dir + '/' + fig_name + '.pdf')
 
@@ -181,7 +181,6 @@ def compute_prec_hist(nanfield, bin_edges):
     a = a[np.isfinite(a)]
     hist = np.histogram(a, bin_edges)[0]
     return hist
-
 
 
 def compute_ens_stats(convradar, convfieldlist, ens_norm_type,
@@ -480,6 +479,19 @@ def compute_det_rmse(radar_data, fc_data):
     return rmse
 
 
+def compute_det_mean_prec(data):
+    """Compute deterministic mean precipitation
+
+    Args:
+        data: data
+
+    Returns:
+        mean: Numpy array with dimensions [hour]
+    """
+    mean = np.nanmean(data, axis=(1, 2))
+    return mean
+
+
 # Panel plotting functions
 def plot_line(plot_list, exp_ids, metric, title):
     """
@@ -501,6 +513,8 @@ def plot_line(plot_list, exp_ids, metric, title):
     ax.set_ylabel(metric_dict[metric]['ylabel'])
     ax.set_title(title)
     ax.legend(loc=0, fontsize=6)
+
+    set_panel(ax)
 
     plt.tight_layout()
 

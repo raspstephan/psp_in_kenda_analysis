@@ -50,7 +50,14 @@ metric_dict = {
         'use_radar': True,
         'det_or_ens': 'det',
         'plot_type': 'line',
-        'plot_radar': False,
         'ylabel': 'RMSE [mm/h]',
+    },
+    'det_mean_prec': {
+        'var': 'prec',
+        'full_name': 'Deterministic mean precipitation',
+        'use_radar': True,
+        'det_or_ens': 'det',
+        'plot_type': 'line',
+        'ylabel': 'Precipitation [mm/h]',
     }
 }

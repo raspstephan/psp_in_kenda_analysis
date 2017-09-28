@@ -24,23 +24,31 @@ def compute_metric(inargs, exp_id, date):
     Returns:
         metric: Numpy array with dimensions [time, metric_dim]
     """
+    date_str = h.dt_to_yyyymmddhhmmss(date)
 
     # Load presaved forecast data
-    date_str = h.dt_to_yyyymmddhhmmss(date)
-    fc_fn = (config.savedir_base + exp_id + '/prec_fields/' +
-             config.metric_dict[inargs.metric]['det_or_ens'] + '_' +
-             date_str + '.npy')
-    fc_data = np.load(fc_fn)
+    if exp_id == 'radar':   # Make an exception for radar as exp_id
+        radar_fn = (config.savedir_base + 'radar/prec_fields/' + 'radar_' +
+                    date_str + '.npy')
+        fc_data = np.load(radar_fn)
+    else:
+        fc_fn = (config.savedir_base + exp_id + '/prec_fields/' +
+                 config.metric_dict[inargs.metric]['det_or_ens'] + '_' +
+                 date_str + '.npy')
+        fc_data = np.load(fc_fn)
 
     if config.metric_dict[inargs.metric]['use_radar']:
+        # Load presaved radar data
         radar_fn = (config.savedir_base + 'radar/prec_fields/' + 'radar_' +
                     date_str + '.npy')
         radar_data = np.load(radar_fn)
         radar_data, fc_data = h.handle_nans(radar_data, fc_data,
                                             inargs.radar_thresh)
 
-    # Pass data to
-    if inargs.metric == 'det_rmse':
+    # Pass data to computation functions
+    if inargs.metric == 'det_mean_prec':
+        m = h.compute_det_mean_prec(fc_data)
+    elif inargs.metric == 'det_rmse':
         m = h.compute_det_rmse(radar_data, fc_data)
     else:
         raise ValueError('Metric %s does not exist.' % inargs.metric)
@@ -110,7 +118,8 @@ def plot_panel(inargs, plot_list, title_str):
     else:
         raise ValueError('Plot type %s does not exist.' %
                          config.metric_dict[inargs.metric]['plot_type'])
-    plot_dir = config.plotdir + '/forecast_metrics/'
+    exp_id_str = '_'.join([e for e in inargs.exp_id if not e == 'radar'])
+    plot_dir = config.plotdir + '/' + exp_id_str + '/forecast_metrics/'
     plot_str = inargs.metric + '_' + title_str
     h.save_fig_and_log(fig, plot_str, plot_dir)
 
@@ -137,7 +146,7 @@ def main(inargs):
                                                      inargs.date_stop,
                                                      inargs.hours_inc)):
             plot_list = [r[idate] for r in results_list]
-            title_str = args.date_start[:-4]
+            title_str = h.dt_to_yyyymmddhhmmss(date)[:-4]
             plot_panel(inargs, plot_list, title_str)
 
 
