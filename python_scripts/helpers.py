@@ -9,6 +9,7 @@ from git import Repo
 from cosmo_utils.pywgrib import getfobj_ens, getfobj
 from cosmo_utils.helpers import yyyymmddhhmmss_strtotime, ddhhmmss_strtotime, \
     yymmddhhmm
+from cosmo_utils.scores.SAL import compute_SAL
 from config import *  # Import config file
 from cosmo_utils.pyncdf import getfobj_ncdf
 import numpy as np
@@ -497,8 +498,34 @@ def compute_det_rmse(radar_data, fc_data):
     return rmse
 
 
-def compute_det_mean_prec(data):
-    """Compute deterministic mean precipitation
+def compute_det_sal(radar_data, fc_data, sal_thresh):
+    """Compute deterministic SAL
+
+    Args:
+        radar_data: Radar data
+        fc_data: forecast data
+        sal_thresh: threshold for object identification
+
+    Returns:
+        rmse: Numpy array with dimensions [hour]
+    """
+    s = []
+    a = []
+    l = []
+    for i in range(radar_data.shape[0]):
+        r = radar_data[i]
+        f = fc_data[i]
+        r[np.logical_or(np.isnan(r), r < 0)] = 0
+        f[np.logical_or(np.isnan(f), f < 0)] = 0
+        out = compute_SAL(r, f, sal_thresh)
+        s.append(out[0])
+        a.append(out[1])
+        l.append(out[2])
+    return np.array([s, a, l])
+
+
+def compute_det_domain_mean(data):
+    """Compute deterministic mean
 
     Args:
         data: data
@@ -508,6 +535,19 @@ def compute_det_mean_prec(data):
     """
     mean = np.nanmean(data, axis=(1, 2))
     return mean
+
+
+def compute_det_domain_median(data):
+    """Compute deterministic median
+
+    Args:
+        data: data
+
+    Returns:
+        median: Numpy array with dimensions [hour]
+    """
+    median = np.nanmedian(data, axis=(1, 2))
+    return median
 
 
 def compute_det_fss(radar_data, fc_data, fss_thresh, fss_size):
@@ -587,6 +627,40 @@ def plot_line(plot_list, exp_ids, metric, title):
     for ie, e in enumerate(exp_ids):
         ax.plot(x, plot_list[ie], c=cdict[e], label=e)
 
+    ax.set_xlabel('Forecast lead time [h]')
+    ax.set_ylabel(metric_dict[metric]['ylabel'])
+    ax.set_title(title)
+    ax.legend(loc=0, fontsize=6)
+
+    set_panel(ax)
+
+    plt.tight_layout()
+
+    return fig
+
+
+def plot_sal(plot_list, exp_ids, metric, title):
+    """Plot SAL plot
+
+    Args:
+        plot_list: List of metrics [exp_id][time, metric_dim]
+        exp_ids: List with exp id names
+        metric: name of metric
+        title: title string
+
+    Returns:
+        fig: Figure object
+    """
+
+    fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, 0.5 * pw))
+
+    x = np.arange(1, 25)
+    for ie, e in enumerate(exp_ids):
+        ax.plot(x, plot_list[ie][0], c=cdict[e], label=e)
+        ax.plot(x, plot_list[ie][1], c=cdict[e], label=e, linestyle='--')
+        ax.plot(x, plot_list[ie][2], c=cdict[e], label=e, linestyle=':')
+
+    ax.axhline(0, c='gray', zorder=0.1)
     ax.set_xlabel('Forecast lead time [h]')
     ax.set_ylabel(metric_dict[metric]['ylabel'])
     ax.set_title(title)

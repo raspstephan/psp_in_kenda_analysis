@@ -28,11 +28,15 @@ def compute_metric(inargs, exp_id, date):
 
     # Load presaved forecast data
     if exp_id == 'radar':   # Make an exception for radar as exp_id
-        radar_fn = (config.savedir_base + 'radar/prec_fields/' + 'radar_' +
+        radar_fn = (config.savedir_base + 'radar/' +
+                    config.metric_dict[inargs.metric.split('-')[0]]['var'] +
+                    '_fields/' + 'radar_' +
                     date_str + '.npy')
         fc_data = np.load(radar_fn)
     else:
-        fc_fn = (config.savedir_base + exp_id + '/prec_fields/' +
+        fc_fn = (config.savedir_base + exp_id + '/' +
+                 config.metric_dict[inargs.metric.split('-')[0]]['var'] +
+                 '_fields/' +
                  config.metric_dict[inargs.metric.split('-')[0]]['det_or_ens'] +
                  '_' + date_str + '.npy')
         fc_data = np.load(fc_fn)
@@ -45,10 +49,17 @@ def compute_metric(inargs, exp_id, date):
         radar_data, fc_data = h.handle_nans(radar_data, fc_data,
                                             inargs.radar_thresh)
     # Pass data to computation functions
-    if inargs.metric == 'det_mean_prec':
-        m = h.compute_det_mean_prec(fc_data)
+    if inargs.metric in ['det_mean_prec', 'det_mean_cape', 'det_mean_cin']:
+        m = h.compute_det_domain_mean(fc_data)
+    elif inargs.metric in ['det_median_prec', 'det_median_cape',
+                           'det_median_cin']:
+        m = h.compute_det_domain_median(fc_data)
     elif inargs.metric == 'det_rmse':
         m = h.compute_det_rmse(radar_data, fc_data)
+    elif 'det_sal' in inargs.metric:
+        _, sal_thresh = inargs.metric.split('-')
+        sal_thresh = float(sal_thresh) / 10.
+        m = h.compute_det_sal(radar_data, fc_data, sal_thresh)
     elif 'det_fss' in inargs.metric:
         # Parse
         _, fss_thresh, fss_size = inargs.metric.split('-')
@@ -128,6 +139,9 @@ def plot_panel(inargs, plot_list, title_str):
     if config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'line':
         fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
                           title_str)
+    elif config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'sal':
+        fig = h.plot_sal(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
+                         title_str)
     elif config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'hist':
         fig = h.plot_hist(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
                           title_str, inargs.hist_normalize)
