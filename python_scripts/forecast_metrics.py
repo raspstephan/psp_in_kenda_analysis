@@ -44,7 +44,6 @@ def compute_metric(inargs, exp_id, date):
         radar_data = np.load(radar_fn)
         radar_data, fc_data = h.handle_nans(radar_data, fc_data,
                                             inargs.radar_thresh)
-
     # Pass data to computation functions
     if inargs.metric == 'det_mean_prec':
         m = h.compute_det_mean_prec(fc_data)
@@ -59,6 +58,8 @@ def compute_metric(inargs, exp_id, date):
         config.metric_dict[inargs.metric.split('-')[0]]['ylabel'] = \
             'FSS ' + str(fss_thresh) + 'mm/h ' + str(fss_size * 2.8) + 'km'
         m = h.compute_det_fss(radar_data, fc_data, fss_thresh, fss_size)
+    elif inargs.metric == 'ens_crps':
+        m = h.compute_ens_crps(radar_data, fc_data)
     else:
         raise ValueError('Metric %s does not exist.' % inargs.metric)
 

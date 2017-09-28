@@ -528,6 +528,27 @@ def compute_det_fss(radar_data, fc_data, fss_thresh, fss_size):
     return np.array(l)
 
 
+def compute_ens_crps(radar_data, fc_data):
+    """Compute Ensemble CRPS
+
+    Args:
+        radar_data: Radar data [hour, x, y]
+        fc_data: forecast data of ensemble [hour, ens, x, y]
+
+    Returns:
+        rmse: Numpy array with dimensions [hour]
+    """
+    l = []
+    for i in range(radar_data.shape[0]):
+        radar_flat = np.ravel(radar_data[i])
+        mask = np.isfinite(radar_flat)
+        radar_flat = radar_flat[mask]
+        ens_flat = np.reshape(fc_data[i], (fc_data[i].shape[0], -1))
+        ens_flat = ens_flat[:, mask]
+        l.append(np.mean(crps_sample(radar_flat, ens_flat)))
+    return np.array(l)
+
+
 # Panel plotting functions
 def plot_line(plot_list, exp_ids, metric, title):
     """

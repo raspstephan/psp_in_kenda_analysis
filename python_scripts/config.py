@@ -75,5 +75,13 @@ metric_dict = {
         'det_or_ens': 'det',
         'plot_type': 'line',
         'ylabel': 'FSS',
+    },
+    'ens_crps': {
+        'var': 'prec',
+        'full_name': 'Ensemble CRPS',
+        'use_radar': True,
+        'det_or_ens': 'ens',
+        'plot_type': 'line',
+        'ylabel': 'CRPS',
     }
 }
