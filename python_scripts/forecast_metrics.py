@@ -50,7 +50,9 @@ def compute_metric(inargs, exp_id, date):
                                             inargs.radar_thresh)
 
     if not inargs.upscale == 1:
-        pass
+        fc_data = h.upscale_fields(fc_data, inargs.upscale)
+        if 'radar_data' in locals():
+            radar_data = h.upscale_fields(radar_data, inargs.upscale)
 
     # Pass data to computation functions
     if inargs.metric in ['det_mean_prec', 'det_mean_cape', 'det_mean_cin']:
@@ -102,8 +104,9 @@ def get_metric_for_one_day(inargs, exp_id, date):
     """
 
     # Create savestr
+    up_str = '_up-' + str(inargs.upscale) if inargs.upscale > 1 else ''
     save_fn = (config.savedir_base + exp_id + '/' + inargs.metric + '_' +
-               h.dt_to_yyyymmddhhmmss(date) + '.npy')
+               h.dt_to_yyyymmddhhmmss(date) + up_str + '.npy')
 
     # Check if save_fn exists or recompute
     print 'Check if pre-computed file exists: %s' % save_fn
@@ -142,6 +145,7 @@ def plot_panel(inargs, plot_list, title_str):
     Args:
         inargs: Command line arguments
         plot_list: List of metrics [exp_id][time, metric_dim]
+        title_str: Title
     """
 
     if config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'line':
@@ -178,6 +182,8 @@ def main(inargs):
     if inargs.composite:
         plot_list = [np.nanmean(r, axis=0) for r in results_list]
         title_str = args.date_start[:-4] + '-' + args.date_stop[:-4]
+        if not inargs.upscale == 1:
+            title_str += '_up-' + str(inargs.upscale)
         plot_panel(inargs, plot_list, title_str)
 
     else:
@@ -186,6 +192,8 @@ def main(inargs):
                                                      inargs.hours_inc)):
             plot_list = [r[idate] for r in results_list]
             title_str = h.dt_to_yyyymmddhhmmss(date)[:-4]
+            if not inargs.upscale == 1:
+                title_str += '_up-' + str(inargs.upscale)
             plot_panel(inargs, plot_list, title_str)
 
 

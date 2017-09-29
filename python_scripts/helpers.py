@@ -17,6 +17,7 @@ import matplotlib.pyplot as plt
 from cosmo_utils.scores.probab import FSS
 sys.path.append('/home/s/S.Rasp/repositories/enstools/')
 from enstools.scores import crps_sample
+from scipy.signal import convolve2d
 
 
 def save_fig_and_log(fig, fig_name, plot_dir):
@@ -482,6 +483,31 @@ def handle_nans(radar_data, fc_data, radar_thresh):
     return radar_data, fc_data
 
 
+def upscale_fields(data, scale):
+    """Handle NaNs on a daily basis.
+
+    Args:
+        data: data array with dimensions [time, x, y] or [time, ens, x, y]
+        scale: Kernel size in grid points
+
+    Returns:
+        up_data: Upscaled data with same size
+    """
+    assert scale % 2 == 1, 'Kernel size must be odd.'
+    kernel = np.ones((scale, scale)) / float((scale * scale))
+
+    if data.ndim == 3:
+        for i in range(data.shape[0]):
+            data[i] = convolve2d(data[i], kernel, mode='same')
+    elif data.ndim == 4:
+        for i in range(data.shape[0]):
+            for j in range(data.shape[1]):
+                data[i, j] = convolve2d(data[i, j], kernel, mode='same')
+    else:
+        raise ValueError('Wrong shape of data array.')
+    return data
+
+
 # New compute_*metric* functions
 # These work with input of dimension [hour, x, y] or [hour, ens, x, y]
 def compute_det_rmse(radar_data, fc_data):
@@ -600,7 +626,7 @@ def compute_ens_rmse(radar_data, fc_data):
         rmse: Numpy array with dimensions [hour]
     """
     ens_mean = np.mean(fc_data, axis=1)
-    rmse = np.sqrt(np.nanmean(radar_data - ens_mean, axis=(1, 2)))
+    rmse = np.sqrt(np.nanmean((radar_data - ens_mean) ** 2, axis=(1, 2)))
     return rmse
 
 
