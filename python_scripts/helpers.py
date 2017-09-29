@@ -656,7 +656,12 @@ def plot_line(plot_list, exp_ids, metric, title):
         ax.plot(x, plot_list[ie], c=cdict[e], label=e)
 
     ax.set_xlabel('Forecast lead time [h]')
-    ax.set_ylabel(metric_dict[metric]['ylabel'])
+    split_metric = metric.split('-')
+    if len(split_metric) == 1:
+        ax.set_ylabel(metric_dict[metric]['ylabel'])
+    else:
+        yl = metric_dict[split_metric[0]]['ylabel'] % tuple(split_metric[1:])
+        ax.set_ylabel(yl)
     ax.set_title(title)
     ax.legend(loc=0, fontsize=6)
 
@@ -690,7 +695,12 @@ def plot_sal(plot_list, exp_ids, metric, title):
 
     ax.axhline(0, c='gray', zorder=0.1)
     ax.set_xlabel('Forecast lead time [h]')
-    ax.set_ylabel(metric_dict[metric]['ylabel'])
+    split_metric = metric.split('-')
+    if len(split_metric) == 1:
+        ax.set_ylabel(metric_dict[metric]['ylabel'])
+    else:
+        yl = metric_dict[split_metric[0]]['ylabel'] % tuple(split_metric[1:])
+        ax.set_ylabel(yl)
     ax.set_title(title)
     ax.legend(loc=0, fontsize=6)
 

@@ -48,6 +48,10 @@ def compute_metric(inargs, exp_id, date):
         radar_data = np.load(radar_fn)
         radar_data, fc_data = h.handle_nans(radar_data, fc_data,
                                             inargs.radar_thresh)
+
+    if not inargs.upscale == 1:
+        pass
+
     # Pass data to computation functions
     if inargs.metric in ['det_mean_prec', 'det_mean_cape', 'det_mean_cin']:
         m = h.compute_det_domain_mean(fc_data)
@@ -141,13 +145,13 @@ def plot_panel(inargs, plot_list, title_str):
     """
 
     if config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'line':
-        fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
+        fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric,
                           title_str)
     elif config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'sal':
-        fig = h.plot_sal(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
+        fig = h.plot_sal(plot_list, inargs.exp_id, inargs.metric,
                          title_str)
     elif config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'hist':
-        fig = h.plot_hist(plot_list, inargs.exp_id, inargs.metric.split('-')[0],
+        fig = h.plot_hist(plot_list, inargs.exp_id, inargs.metric,
                           title_str, inargs.hist_normalize)
     else:
         raise ValueError('Plot type %s does not exist.' %
@@ -200,7 +204,7 @@ if __name__ == '__main__':
                         help='End date for date loop (yyyymmddhhmmss)')
     parser.add_argument('--hours_inc',
                         type=int,
-                        default='24',
+                        default=24,
                         help='Time increment between forecasts (h)')
     parser.add_argument('--metric',
                         type=str,
@@ -225,6 +229,10 @@ if __name__ == '__main__':
                         action='store_true',
                         help='Normalize histogram by all precipitation points')
     parser.set_defaults(hist_normalize=False)
+    parser.add_argument('--upscale',
+                        type=int,
+                        default=1,
+                        help='Upscaling neighborhood.')
 
     args = parser.parse_args()
 

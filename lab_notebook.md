@@ -39,3 +39,13 @@ ToDo:
 I did not actually manage to do any of these things but I created a good framework for my analysis.
 
 Another ToDo is the missing values for the noDA run!
+
+
+## August 28
+
+ToDo:
+- Radar plots
+
+CRPS for 00UTC running in screen.
+
+I think I need some sort of upscaling. Add as additional parameter.

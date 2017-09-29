@@ -102,11 +102,11 @@ metric_dict = {
     },
     'det_sal': {
         'var': 'prec',
-        'full_name': 'Deterministic SALN',
+        'full_name': 'Deterministic SAL',
         'use_radar': True,
         'det_or_ens': 'det',
         'plot_type': 'sal',
-        'ylabel': 'S (-) A(--) L(:)',
+        'ylabel': 'S (-) A(--) L(:) %s mm/h',
     },
     'det_fss': {
         'var': 'prec',
@@ -114,7 +114,7 @@ metric_dict = {
         'use_radar': True,
         'det_or_ens': 'det',
         'plot_type': 'line',
-        'ylabel': 'FSS',
+        'ylabel': 'FSS %s mm/h %s pts',
     },
     'det_prec_hist': {
         'var': 'prec',
