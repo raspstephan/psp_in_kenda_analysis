@@ -148,4 +148,12 @@ metric_dict = {
         'plot_type': 'line',
         'ylabel': 'RMV [mm/h]',
     },
+    'ens_bs': {
+        'var': 'prec',
+        'full_name': 'Ensemble Brier Score',
+        'use_radar': True,
+        'det_or_ens': 'ens',
+        'plot_type': 'line',
+        'ylabel': 'BS %s mm/h',
+    },
 }

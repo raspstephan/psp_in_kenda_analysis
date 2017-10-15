@@ -18,7 +18,7 @@ from cosmo_utils.scores.probab import FSS
 sys.path.append('/home/s/S.Rasp/repositories/enstools/')
 from enstools.scores import crps_sample
 from scipy.signal import convolve2d
-
+import pdb
 
 def save_fig_and_log(fig, fig_name, plot_dir):
     """
@@ -261,6 +261,7 @@ def compute_bs(obs, enslist, threshold):
     """
     Compute the Brier score for a given threshold.
     """
+
     prob_fc = np.sum((enslist > threshold), axis=0) / enslist.shape[0]
     bin_obs = obs > threshold
     bs = np.nanmean((prob_fc - bin_obs) ** 2)
@@ -484,7 +485,7 @@ def handle_nans(radar_data, fc_data, radar_thresh):
 
 
 def upscale_fields(data, scale):
-    """Handle NaNs on a daily basis.
+    """Upscale fields.
 
     Args:
         data: data array with dimensions [time, x, y] or [time, ens, x, y]
@@ -643,6 +644,22 @@ def compute_ens_rmv(fc_data):
     return rmv
 
 
+def compute_ens_bs(radar_data, fc_data, bs_thresh):
+    """Compute Ensemble Brier Score
+
+    Args:
+        radar_data: Radar data [hour, x, y]
+        fc_data: forecast data of ensemble [hour, ens, x, y]
+        bs_thresh : Threshold value in mm/h
+    Returns:
+        bs: Numpy array with dimensions [hour]
+    """
+    prob_fc = np.mean((fc_data > bs_thresh), axis=1)
+    bin_obs = radar_data > bs_thresh
+    bs = np.nanmean((prob_fc - bin_obs) ** 2, axis=(1,2))
+    return bs
+
+
 def compute_det_prec_hist(data):
     """Compute deterministic preciitation histogram
 
@@ -674,7 +691,6 @@ def plot_line(plot_list, exp_ids, metric, title):
     Returns:
         fig: Figure object
     """
-
     fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, 0.5 * pw))
 
     x = np.arange(1, 25)
@@ -686,7 +702,7 @@ def plot_line(plot_list, exp_ids, metric, title):
     if len(split_metric) == 1:
         ax.set_ylabel(metric_dict[metric]['ylabel'])
     else:
-        yl = metric_dict[split_metric[0]]['ylabel'] % tuple(split_metric[1:])
+        yl = metric_dict[split_metric[0]]['ylabel']  % tuple(split_metric[1:])
         ax.set_ylabel(yl)
     ax.set_title(title)
     ax.legend(loc=0, fontsize=6)

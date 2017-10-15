@@ -9,6 +9,7 @@ import numpy as np
 import os
 import config
 import helpers as h
+import pdb
 
 
 # Intermediate functions
@@ -71,9 +72,9 @@ def compute_metric(inargs, exp_id, date):
         _, fss_thresh, fss_size = inargs.metric.split('-')
         fss_thresh = float(fss_thresh) / 10.
         fss_size = int(fss_size)
-        # Update dictionary
-        config.metric_dict[inargs.metric.split('-')[0]]['ylabel'] = \
-            'FSS ' + str(fss_thresh) + 'mm/h ' + str(fss_size * 2.8) + 'km'
+        # Update dictionary   NOTE: This doesn't seem to work
+        # config.metric_dict[inargs.metric.split('-')[0]]['ylabel'] = \
+        #     'FSS ' + str(fss_thresh) + 'mm/h ' + str(fss_size * 2.8) + 'km'
         m = h.compute_det_fss(radar_data, fc_data, fss_thresh, fss_size)
     elif inargs.metric == 'det_prec_hist':
         m = h.compute_det_prec_hist(fc_data)
@@ -83,6 +84,14 @@ def compute_metric(inargs, exp_id, date):
         m = h.compute_ens_rmv(fc_data)
     elif inargs.metric == 'ens_crps':
         m = h.compute_ens_crps(radar_data, fc_data)
+    elif 'ens_bs' in inargs.metric:
+        # Parse
+        _, bs_thresh = inargs.metric.split('-')
+        bs_thresh = float(bs_thresh) / 10.
+        # Update dictionary
+        # config.metric_dict[inargs.metric.split('-')[0]]['ylabel'] = \
+        #     'BS ' + str(bs_thresh) + 'mm/h '
+        m = h.compute_ens_bs(radar_data, fc_data, bs_thresh)
     else:
         raise ValueError('Metric %s does not exist.' % inargs.metric)
 
