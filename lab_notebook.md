@@ -49,3 +49,10 @@ ToDo:
 CRPS for 00UTC running in screen.
 
 I think I need some sort of upscaling. Add as additional parameter.
+
+
+## October 15
+
+Goal: Find out about ensemble spread in precipitation!
+
+1. Try Brier Score for 0.1 and 1.0 mm/h --> Running in screen for upscale 1 and 31

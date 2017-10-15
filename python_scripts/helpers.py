@@ -18,7 +18,10 @@ from cosmo_utils.scores.probab import FSS
 sys.path.append('/home/s/S.Rasp/repositories/enstools/')
 from enstools.scores import crps_sample
 from scipy.signal import convolve2d
+from scipy.ndimage.filters import convolve
 import pdb
+
+np.seterr(invalid='ignore')
 
 def save_fig_and_log(fig, fig_name, plot_dir):
     """
@@ -495,17 +498,14 @@ def upscale_fields(data, scale):
         up_data: Upscaled data with same size
     """
     assert scale % 2 == 1, 'Kernel size must be odd.'
-    kernel = np.ones((scale, scale)) / float((scale * scale))
 
     if data.ndim == 3:
-        for i in range(data.shape[0]):
-            data[i] = convolve2d(data[i], kernel, mode='same')
+        kernel = np.ones((1, scale, scale)) / float((scale * scale))
     elif data.ndim == 4:
-        for i in range(data.shape[0]):
-            for j in range(data.shape[1]):
-                data[i, j] = convolve2d(data[i, j], kernel, mode='same')
+        kernel = np.ones((1, 1, scale, scale)) / float((scale * scale))
     else:
         raise ValueError('Wrong shape of data array.')
+    data = convolve(data, kernel, mode='constant')
     return data
 
 
