@@ -182,7 +182,7 @@ def set_panel(ax):
     ax.spines['bottom'].set_position(('outward', 3))
     ax.set_xticks(range(24)[::6])
     ax.set_xlim(0, 24)
-    ax.set_xlabel('Time [UTC]')
+    # ax.set_xlabel('Time [UTC]')
 
 
 def compute_det_stats(nanradar, nandet, convradar, convdet):
@@ -793,3 +793,35 @@ def plot_hist(plot_list, exp_ids, metric, title, normalize=False):
 
     return fig
 
+
+def plot_synop(plot_list, exp_ids, title, ylabel):
+    """Plot SYNOP plot
+
+    Args:
+        plot_list: List of metrics [exp_id][time, metric_dim]
+        exp_ids: List with exp id names
+        title: title string
+        ylabel: y label
+
+    Returns:
+        fig: Figure object
+    """
+
+    fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, 0.5 * pw))
+    x = np.arange(1, 25)
+    for ie, e in enumerate(exp_ids):
+        ax.plot(x, plot_list[ie][0], c=cdict[e], label=e)
+        ax.plot(x, plot_list[ie][1], c=cdict[e], linestyle='--')
+
+    ax.axhline(0, c='gray', zorder=0.1)
+    ax.set_xlabel('Forecast lead time [h]')
+    ax.set_ylabel(ylabel)
+
+    ax.set_title(title)
+    ax.legend(loc=0, fontsize=6)
+
+    set_panel(ax)
+
+    plt.tight_layout()
+
+    return fig

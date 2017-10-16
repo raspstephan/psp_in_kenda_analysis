@@ -17,6 +17,7 @@ import helpers as h
 sys.path.append('/home/s/S.Rasp/repositories/kendapy')
 from ekf import Ekf
 from scipy.stats import binned_statistic
+import pdb
 
 
 def compute_synop(inargs, exp_id, date):
@@ -35,37 +36,40 @@ def compute_synop(inargs, exp_id, date):
     date_str = h.dt_to_yyyymmddhhmmss(date)
 
     if inargs.fc_type == 'det':
-        fof_fn = (config.datadir + exp_id + date_str + '/det/fof_' + date_str +
-                  '.nc')
+
+        fof_fn = (config.datadir + exp_id + '/' + date_str + '/det/fof_' +
+                  date_str + '.nc')
         # Load ekf object and get data
         fof = Ekf(fof_fn)
         fkw = {'obstype': 'SYNOP', 'varname': inargs.var, 'state': inargs.state}
-        obs = Ekf.obs(**fkw)
-        fc = Ekf.fg(**fkw)
-        time = Ekf.obs(param='time', **fkw)
+        obs = fof.obs(**fkw)
+        fc = fof.fg(**fkw)
+        time = fof.obs(param='time', **fkw)
 
         # Compute statistics
         diff = obs - fc
 
         # Bin statistic according to time
-        bin_edges = np.arange(0, (args.hint + 1) * 60, 60)  # Hourly bins
+        bin_edges = np.arange(0, (24 + 1) * 60, 60)  # Hourly bins
         bias = binned_statistic(time, diff, bins=bin_edges)[0]
         rmse = np.sqrt(binned_statistic(time, np.array(diff) ** 2,
                                         bins=bin_edges)[0])
         results = [rmse, bias]
     elif inargs.fc_type == 'ens':
+        raise Exception, 'SYNOP data missing for ensembles...'
         # Loop over ensemble members
         ens_list = []
         for ie in range(20):   # ATTENTION: Hard coded ensemble size
-            fof_fn = (config.datadir + exp_id + date_str + '/' +
+            fof_fn = (config.datadir + exp_id + '/' + date_str + '/ens' +
                       str(ie+1).zfill(3) + '/fof_' + date_str + '.nc')
+            print fof_fn
             # Load ekf object and get data
             fof = Ekf(fof_fn)
             fkw = {'obstype': 'SYNOP', 'varname': inargs.var,
                    'state': inargs.state}
-            obs = Ekf.obs(**fkw)
-            fc = Ekf.fg(**fkw)
-            time = Ekf.obs(param='time', **fkw)
+            obs = fof.obs(**fkw)
+            fc = fof.fg(**fkw)
+            time = fof.obs(param='time', **fkw)
             ens_list.append(fc)
 
         # compute statistics
@@ -73,7 +77,7 @@ def compute_synop(inargs, exp_id, date):
         ens_spread = np.std(ens_list, axis=0, ddof=1)
 
         # Bin statistic according to time
-        bin_edges = np.arange(0, (args.hint + 1) * 60, 60)  # Hourly bins
+        bin_edges = np.arange(0, (24 + 1) * 60, 60)  # Hourly bins
         spread = binned_statistic(time, ens_spread, bins=bin_edges)[0]
         rmse = np.sqrt(binned_statistic(time, np.array(obs - ens_mean) ** 2,
                                         bins=bin_edges)[0])
@@ -93,7 +97,8 @@ def get_synop_for_one_day(inargs, exp_id, date):
         date: datetime object
 
     Returns:
-        results: Numpy array with dimensions [time, metric_dim]
+        results: det --> [rmse, bias [time]]
+                 ens --> [rmse, std [time]]
 
     """
 
@@ -121,12 +126,12 @@ def get_verification_for_all_dates(inargs, exp_id):
         exp_id: Experiment ID string 
 
     Returns:
-        results: List
+        results: Numpy array with dimensions
+                 [metric, date, time] for SYNOP
+                 [metric, date, height] for TEMP/AIREP
+                 where metric is
                  [rmse, bias] for det
                  [rmse, spread] for ens
-                 of Numpy arrays with dimensions 
-                 [date, time] for SYNOP
-                 [date, height] for TEMP/AIREP
     """
     date_list = []
     # Loop over dates and collect data
@@ -139,8 +144,10 @@ def get_verification_for_all_dates(inargs, exp_id):
         else:
             raise TypeError, 'Wrong obs type.'
 
-    # TODO: Some dimension transform
-    return something
+    # Change dimensions from [date, metric, time] to [metric, date, time]
+    r = np.array(date_list)
+    r = np.rollaxis(r, 1, 0)
+    return r
 
 
 # Main program
@@ -155,6 +162,39 @@ def main(inargs):
     for e in inargs.exp_id:
         results_list.append(get_verification_for_all_dates(inargs, e))
 
+    # Get ylabel
+    if inargs.var == 'T2M': ylabel = 'T2M [K]'
+    elif inargs.var == 'PS': ylabel = 'PS [Pa]'
+    else: raise TypeError, 'Var not implemented.'
+
+    ylabel = ylabel + ' rmse(-) and bias(--)' if inargs.fc_type == 'det' \
+        else ylabel + ' rmse(-) and spread(--)'
+
+    # Plot results
+    if inargs.composite:
+        plot_list = [np.nanmean(r, axis=1) for r in results_list]
+        title_str = args.date_start[:-4] + '-' + args.date_stop[:-4]
+        if inargs.obs == 'SYNOP':
+            fig = h.plot_synop(plot_list, inargs.exp_id, title_str, ylabel)
+        else:
+            fig = h.plot_temp_airep(plot_list, title_str)
+
+    else:
+        for idate, date in enumerate(h.make_timelist(inargs.date_start,
+                                                     inargs.date_stop,
+                                                     inargs.hours_inc)):
+            plot_list = [r[:, idate] for r in results_list]
+            title_str = h.dt_to_yyyymmddhhmmss(date)[:-4]
+            if inargs.obs == 'SYNOP':
+                fig = h.plot_synop(plot_list, inargs.exp_id, title_str, ylabel)
+            else:
+                fig = h.plot_temp_airep(plot_list, title_str)
+
+    exp_id_str = '_'.join(inargs.exp_id)
+    plot_dir = config.plotdir + '/' + exp_id_str + '/forecast_synop_air/'
+    plot_str = (inargs.obs + '_' + inargs.var + '_' + inargs.fc_type + '_' +
+                title_str)
+    h.save_fig_and_log(fig, plot_str, plot_dir)
 
 
 if __name__ == '__main__':
@@ -170,6 +210,10 @@ if __name__ == '__main__':
                         type=str,
                         default='20160609000000',
                         help='End date for date loop (yyyymmddhhmmss)')
+    parser.add_argument('--hours_inc',
+                        type=int,
+                        default=24,
+                        help='Time increment between forecasts (h)')
     parser.add_argument('--obs',
                         type=str,
                         help='SYNOP, TEMP or AIREP')

@@ -67,7 +67,7 @@ ToDo:
 - Scores (FSS) for 12UTC init. Is noDA still better than DA_PSP? --> In screen. Done
 - Precip accum for 12 UTC --> Done
 - FSS for 11 grid points
-- Forecast T (+PS) verification
+- Forecast T (+PS) verification --> Do that now!
 - Analysis precipitation (ens!) verification
 - Start coherent paper.tex --> started
 
@@ -82,5 +82,8 @@ Put results (BS, CRPS, FSS12) in paper.tex -->
 - FSS 12UTC: Is noDA still better than DA_PSP? No big difference. Does this indicate that using PSP in DA... not sure.
 - BS/CRPS. There is some suggestions that at the time of triggering there is an icrease in spread, and therefore better reliability.
 - 12UTC, initial spin up peak. Also for strong forcing, too much precip. contradicts 00UTC too little precip... 
+
+Forecast SYNOP / TEMP verification
+- apparently SYNOP is missing for ensemble... crap!
 
 
