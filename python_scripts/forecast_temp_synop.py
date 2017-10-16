@@ -40,7 +40,7 @@ def compute_synop(inargs, exp_id, date):
         fof_fn = (config.datadir + exp_id + '/' + date_str + '/det/fof_' +
                   date_str + '.nc')
         # Load ekf object and get data
-        fof = Ekf(fof_fn)
+        fof = Ekf(fof_fn, suppress_warnings=True)
         fkw = {'obstype': 'SYNOP', 'varname': inargs.var, 'state': inargs.state}
         obs = fof.obs(**fkw)
         fc = fof.fg(**fkw)
@@ -64,7 +64,7 @@ def compute_synop(inargs, exp_id, date):
                       str(ie+1).zfill(3) + '/fof_' + date_str + '.nc')
             print fof_fn
             # Load ekf object and get data
-            fof = Ekf(fof_fn)
+            fof = Ekf(fof_fn, suppress_warnings=True)
             fkw = {'obstype': 'SYNOP', 'varname': inargs.var,
                    'state': inargs.state}
             obs = fof.obs(**fkw)

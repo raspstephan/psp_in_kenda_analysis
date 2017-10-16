@@ -85,5 +85,6 @@ Put results (BS, CRPS, FSS12) in paper.tex -->
 
 Forecast SYNOP / TEMP verification
 - apparently SYNOP is missing for ensemble... crap!
+- Det Synop done, tomorrow TEMP/AIREP, also for ensemble.
 
 
