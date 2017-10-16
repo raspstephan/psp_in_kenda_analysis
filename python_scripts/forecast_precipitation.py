@@ -143,7 +143,7 @@ def get_metric_for_all_dates(inargs, exp_id):
     # Loop over dates and collect data
     for date in h.make_timelist(inargs.date_start, inargs.date_stop,
                                 inargs.hours_inc):
-        date_list.append(get_metric_for_one_day(args, exp_id, date))
+        date_list.append(get_metric_for_one_day(inargs, exp_id, date))
     return np.array(date_list)
 
 

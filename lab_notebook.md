@@ -55,4 +55,32 @@ I think I need some sort of upscaling. Add as additional parameter.
 
 Goal: Find out about ensemble spread in precipitation!
 
-1. Try Brier Score for 0.1 and 1.0 mm/h --> Running in screen for upscale 1 and 31
+1. Try Brier Score for 0.1 and 1.0 mm/h --> Running in screen for upscale 1 and 31. Done
+2. Run CRPS again with upscaling --> In screen. Done
+
+Check out status of runs!
+
+- Restarted noDA_PSPv2_ens with correct values --> Should be done end of the week!
+- Restart DA_REF det --> Probably doesn't work. Check tomorrow.
+
+ToDo:
+- Scores (FSS) for 12UTC init. Is noDA still better than DA_PSP? --> In screen. Done
+- Precip accum for 12 UTC --> Done
+- FSS for 11 grid points
+- Forecast T (+PS) verification
+- Analysis precipitation (ens!) verification
+- Start coherent paper.tex --> started
+
+
+## October 16
+
+Runs:
+- noDA still running
+- REF restarted, should work this time!
+
+Put results (BS, CRPS, FSS12) in paper.tex --> 
+- FSS 12UTC: Is noDA still better than DA_PSP? No big difference. Does this indicate that using PSP in DA... not sure.
+- BS/CRPS. There is some suggestions that at the time of triggering there is an icrease in spread, and therefore better reliability.
+- 12UTC, initial spin up peak. Also for strong forcing, too much precip. contradicts 00UTC too little precip... 
+
+
