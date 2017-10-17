@@ -88,3 +88,18 @@ Forecast SYNOP / TEMP verification
 - Det Synop done, tomorrow TEMP/AIREP, also for ensemble.
 
 
+## October 17 
+
+ToDo: 
+- Check DWD runs
+    - noDA at 060512
+    - Da_REF done! --> Copy! --> **SYNOP NOT IN FOF** --> why? is the original data not there?
+- Continue with SYNOP/TEMP verification, note down missing data, make plan for runs!
+
+### Why are SYNOP obs not in fof's?
+- Synop files have wrong name: cdfin_synop_1.nc instead of cdfin_synop, cdfin_synop.2 --> Why?. There are two synop files in each tarred obs file. 
+    - It's handled differently in run_cosmo, but maybe wrong??
+    - Tried fixing it --> I think it worked!
+
+
+

@@ -20,8 +20,50 @@ from scipy.stats import binned_statistic
 import pdb
 
 
-def compute_synop(inargs, exp_id, date):
-    """Compute synop verification for one exp_id and date.
+def compute_det_synop(diff, time):
+    """
+
+    Args:
+        diff: Numpy array with difference obs - fc for each data point
+        time: Corresponding time array
+
+    Returns:
+        [rmse, bias]
+    """
+    # Bin statistic according to time
+    bin_edges = np.arange(0, (24 + 1) * 60, 60)  # Hourly bins
+    bias = binned_statistic(time, diff, bins=bin_edges)[0]
+    rmse = np.sqrt(binned_statistic(time, np.array(diff) ** 2,
+                                    bins=bin_edges)[0])
+    return [rmse, bias]
+
+
+def compute_det_air(diff, time, plevel, verif_time):
+    """
+
+    Args:
+        diff: Numpy array with difference obs - fc for each data point
+        time: Corresponding time array
+        plevel: Pressure for obs
+        verif_time: list with start and stop verif time iin hours
+
+    Returns:
+        [rmse, bias]
+    """
+    # Cut out requested time
+    mask = (time >= verif_time[0] * 60.) & (time <= verif_time[1] * 60.)
+    plevel = plevel[mask]
+    diff = diff[mask]
+
+    # Bin statistic according to pressure level
+    bias = binned_statistic(plevel, diff, bins=config.air_bin_edges)[0]
+    rmse = np.sqrt(binned_statistic(plevel, np.array(diff) ** 2,
+                                    bins=config.air_bin_edges)[0])
+    return [rmse, bias]
+
+
+def compute_verif(inargs, exp_id, date):
+    """Compute verification for one exp_id and date.
     
     Args:
         inargs: Command line arguments
@@ -29,8 +71,10 @@ def compute_synop(inargs, exp_id, date):
         date: datetime object
 
     Returns:
-        results: det --> [rmse, bias [time]]
-                 ens --> [rmse, std [time]]
+        results: det --> [rmse, bias]
+                 ens --> [rmse, std]
+                 with [time] for SYNOP
+                      [height] for TEMP/AIREP
     """
 
     date_str = h.dt_to_yyyymmddhhmmss(date)
@@ -45,18 +89,19 @@ def compute_synop(inargs, exp_id, date):
         obs = fof.obs(**fkw)
         fc = fof.fg(**fkw)
         time = fof.obs(param='time', **fkw)
+        plevel = fof.obs(param='plevel', **fkw)
 
         # Compute statistics
         diff = obs - fc
 
-        # Bin statistic according to time
-        bin_edges = np.arange(0, (24 + 1) * 60, 60)  # Hourly bins
-        bias = binned_statistic(time, diff, bins=bin_edges)[0]
-        rmse = np.sqrt(binned_statistic(time, np.array(diff) ** 2,
-                                        bins=bin_edges)[0])
-        results = [rmse, bias]
+        if inargs.obs == 'SYNOP':
+            results = compute_det_synop(diff, time)
+        elif inargs.obs in ['TEMP', 'AIREP']:
+            results = compute_det_air(diff, time, plevel, inargs.air_verif_time)
+        else:
+            raise TypeError, 'Wrong obs type.'
     elif inargs.fc_type == 'ens':
-        raise Exception, 'SYNOP data missing for ensembles...'
+        print 'SYNOP data missing for ensembles...'
         # Loop over ensemble members
         ens_list = []
         for ie in range(20):   # ATTENTION: Hard coded ensemble size
@@ -88,8 +133,8 @@ def compute_synop(inargs, exp_id, date):
     return results
 
 
-def get_synop_for_one_day(inargs, exp_id, date):
-    """Computes Synop verification for one day
+def get_verification_for_one_day(inargs, exp_id, date):
+    """Computes verification for one day
     
     Args:
         inargs: Command line arguments
@@ -97,8 +142,10 @@ def get_synop_for_one_day(inargs, exp_id, date):
         date: datetime object
 
     Returns:
-        results: det --> [rmse, bias [time]]
-                 ens --> [rmse, std [time]]
+        results: det --> [rmse, bias ]
+                 ens --> [rmse, std]
+                 with [time] for SYNOP
+                      [height] for TEMP/AIREP
 
     """
 
@@ -110,7 +157,7 @@ def get_synop_for_one_day(inargs, exp_id, date):
     print 'Check if pre-computed file exists: %s' % save_fn
     if not os.path.exists(save_fn) or inargs.recompute:
         print 'Nope. Compute!'
-        r = compute_synop(inargs, exp_id, date)
+        r = compute_verif(inargs, exp_id, date)
         np.save(save_fn, r)
     else:
         print 'Yep. Load!'
@@ -137,12 +184,8 @@ def get_verification_for_all_dates(inargs, exp_id):
     # Loop over dates and collect data
     for date in h.make_timelist(inargs.date_start, inargs.date_stop,
                                 inargs.hours_inc):
-        if inargs.obs == 'SYNOP':
-            date_list.append(get_synop_for_one_day(inargs, exp_id, date))
-        elif inargs.obs in ['TEMP', 'AIREP']:
-            date_list.append(get_temp_airep_for_one_day(inargs, exp_id, date))
-        else:
-            raise TypeError, 'Wrong obs type.'
+            date_list.append(get_verification_for_one_day(inargs, exp_id, date))
+
 
     # Change dimensions from [date, metric, time] to [metric, date, time]
     r = np.array(date_list)
@@ -220,6 +263,10 @@ if __name__ == '__main__':
     parser.add_argument('--var',
                         type=str,
                         help='Variable name.')
+    parser.add_argument('--air_verif_time',
+                        type=int,
+                        nargs='+',
+                        help='Verification start and stop time in hours.')
     parser.add_argument('--state',
                         type=str,
                         default='all',
