@@ -175,13 +175,14 @@ def set_plot(ax, title, args, hourlist_plot, adjust=True):
         plt.subplots_adjust(bottom=0.18, left=0.18, right=0.97)
 
 
-def set_panel(ax):
+def set_panel(ax, no_xlim=False):
     ax.spines['right'].set_visible(False)
     ax.spines['top'].set_visible(False)
     ax.spines['left'].set_position(('outward', 3))
     ax.spines['bottom'].set_position(('outward', 3))
-    ax.set_xticks(range(24)[::6])
-    ax.set_xlim(0, 24)
+    if not no_xlim:
+        ax.set_xticks(range(24)[::6])
+        ax.set_xlim(0, 24)
     # ax.set_xlabel('Time [UTC]')
 
 
@@ -821,6 +822,44 @@ def plot_synop(plot_list, exp_ids, title, ylabel):
     ax.legend(loc=0, fontsize=6)
 
     set_panel(ax)
+
+    plt.tight_layout()
+
+    return fig
+
+
+def plot_air(plot_list, exp_ids, title, ylabel, obs):
+    """Plot TEMP/AIREP plot
+
+    Args:
+        plot_list: List of metrics [exp_id][height, metric_dim]
+        exp_ids: List with exp id names
+        title: title string
+        ylabel: y label
+        obs: TEMP or AIREP
+
+    Returns:
+        fig: Figure object
+    """
+    fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, 0.5 * pw))
+    b = temp_bin_edges / 100. if obs == 'TEMP' else airep_bin_edges
+    z = np.mean([b[1:], b[:-1]], axis=0)
+    for ie, e in enumerate(exp_ids):
+        ax.plot(plot_list[ie][0], z, c=cdict[e], label=e)
+        ax.plot(plot_list[ie][1], z, c=cdict[e], linestyle='--')
+
+    ax.axvline(0, c='gray', zorder=0.1)
+    ax.set_xlabel(ylabel)
+    if obs == 'TEMP':
+        ax.set_ylabel('hPa')
+        ax.invert_yaxis()
+    else:
+        ax.set_ylabel('m')
+
+    ax.set_title(title)
+    ax.legend(loc=0, fontsize=6)
+
+    set_panel(ax, no_xlim=True)
 
     plt.tight_layout()
 

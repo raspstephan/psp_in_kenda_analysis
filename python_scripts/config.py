@@ -41,7 +41,8 @@ cdict = {'radar': 'k',
 pw = 7.87
 
 bin_edges = np.append(0, np.logspace(-1, 2, 10))
-air_bin_edges = np.arange(200, 1050, 50) * 100.
+temp_bin_edges = np.arange(200, 1050, 50) * 100.
+airep_bin_edges = np.arange(0, 10000 + 250., 250.)  # m
 
 metric_dict = {
     'det_rmse': {

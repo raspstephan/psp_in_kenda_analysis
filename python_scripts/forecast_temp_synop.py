@@ -21,7 +21,7 @@ import pdb
 
 
 def compute_det_synop(diff, time):
-    """
+    """Compute deterministic SYNOP statistics
 
     Args:
         diff: Numpy array with difference obs - fc for each data point
@@ -38,14 +38,15 @@ def compute_det_synop(diff, time):
     return [rmse, bias]
 
 
-def compute_det_air(diff, time, plevel, verif_time):
-    """
+def compute_det_air(diff, time, plevel, verif_time, obs):
+    """Compute deterministic upper air statistics
 
     Args:
         diff: Numpy array with difference obs - fc for each data point
         time: Corresponding time array
         plevel: Pressure for obs
         verif_time: list with start and stop verif time iin hours
+        obs: TEMP or AIREP
 
     Returns:
         [rmse, bias]
@@ -54,11 +55,14 @@ def compute_det_air(diff, time, plevel, verif_time):
     mask = (time >= verif_time[0] * 60.) & (time <= verif_time[1] * 60.)
     plevel = plevel[mask]
     diff = diff[mask]
+    print 'Obs: %i/%i' % (np.sum(mask), mask.shape[0])
 
     # Bin statistic according to pressure level
-    bias = binned_statistic(plevel, diff, bins=config.air_bin_edges)[0]
+    bin_edges = config.temp_bin_edges if obs == 'TEMP' \
+        else config.airep_bin_edges
+    bias = binned_statistic(plevel, diff, bins=bin_edges)[0]
     rmse = np.sqrt(binned_statistic(plevel, np.array(diff) ** 2,
-                                    bins=config.air_bin_edges)[0])
+                                    bins=bin_edges)[0])
     return [rmse, bias]
 
 
@@ -78,18 +82,17 @@ def compute_verif(inargs, exp_id, date):
     """
 
     date_str = h.dt_to_yyyymmddhhmmss(date)
+    fkw = {'obstype': inargs.obs, 'varname': inargs.var, 'state': inargs.state}
 
     if inargs.fc_type == 'det':
-
         fof_fn = (config.datadir + exp_id + '/' + date_str + '/det/fof_' +
                   date_str + '.nc')
         # Load ekf object and get data
         fof = Ekf(fof_fn, suppress_warnings=True)
-        fkw = {'obstype': 'SYNOP', 'varname': inargs.var, 'state': inargs.state}
         obs = fof.obs(**fkw)
         fc = fof.fg(**fkw)
         time = fof.obs(param='time', **fkw)
-        plevel = fof.obs(param='plevel', **fkw)
+        plevel = fof.obs(param='level', **fkw)
 
         # Compute statistics
         diff = obs - fc
@@ -97,7 +100,8 @@ def compute_verif(inargs, exp_id, date):
         if inargs.obs == 'SYNOP':
             results = compute_det_synop(diff, time)
         elif inargs.obs in ['TEMP', 'AIREP']:
-            results = compute_det_air(diff, time, plevel, inargs.air_verif_time)
+            results = compute_det_air(diff, time, plevel, inargs.air_verif_time,
+                                      inargs.obs)
         else:
             raise TypeError, 'Wrong obs type.'
     elif inargs.fc_type == 'ens':
@@ -110,8 +114,6 @@ def compute_verif(inargs, exp_id, date):
             print fof_fn
             # Load ekf object and get data
             fof = Ekf(fof_fn, suppress_warnings=True)
-            fkw = {'obstype': 'SYNOP', 'varname': inargs.var,
-                   'state': inargs.state}
             obs = fof.obs(**fkw)
             fc = fof.fg(**fkw)
             time = fof.obs(param='time', **fkw)
@@ -186,7 +188,6 @@ def get_verification_for_all_dates(inargs, exp_id):
                                 inargs.hours_inc):
             date_list.append(get_verification_for_one_day(inargs, exp_id, date))
 
-
     # Change dimensions from [date, metric, time] to [metric, date, time]
     r = np.array(date_list)
     r = np.rollaxis(r, 1, 0)
@@ -208,6 +209,7 @@ def main(inargs):
     # Get ylabel
     if inargs.var == 'T2M': ylabel = 'T2M [K]'
     elif inargs.var == 'PS': ylabel = 'PS [Pa]'
+    elif inargs.var == 'T': ylabel = 'T [K]'
     else: raise TypeError, 'Var not implemented.'
 
     ylabel = ylabel + ' rmse(-) and bias(--)' if inargs.fc_type == 'det' \
@@ -220,7 +222,9 @@ def main(inargs):
         if inargs.obs == 'SYNOP':
             fig = h.plot_synop(plot_list, inargs.exp_id, title_str, ylabel)
         else:
-            fig = h.plot_temp_airep(plot_list, title_str)
+            title_str += '_%ih-%ih' % tuple(inargs.air_verif_time)
+            fig = h.plot_air(plot_list, inargs.exp_id, title_str, ylabel,
+                             inargs.obs)
 
     else:
         for idate, date in enumerate(h.make_timelist(inargs.date_start,
@@ -231,7 +235,9 @@ def main(inargs):
             if inargs.obs == 'SYNOP':
                 fig = h.plot_synop(plot_list, inargs.exp_id, title_str, ylabel)
             else:
-                fig = h.plot_temp_airep(plot_list, title_str)
+                title_str += '_%ih-%ih' % tuple(inargs.air_verif_time)
+                fig = h.plot_air(plot_list, inargs.exp_id, title_str, ylabel,
+                                 inargs.obs)
 
     exp_id_str = '_'.join(inargs.exp_id)
     plot_dir = config.plotdir + '/' + exp_id_str + '/forecast_synop_air/'
