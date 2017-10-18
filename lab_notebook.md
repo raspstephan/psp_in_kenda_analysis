@@ -100,7 +100,17 @@ ToDo:
 - Synop files have wrong name: cdfin_synop_1.nc instead of cdfin_synop, cdfin_synop.2 --> Why?. There are two synop files in each tarred obs file. 
     - It's handled differently in run_cosmo, but maybe wrong??
     - Tried fixing it --> I think it worked!
-    
 
+Tomorrow:
+- Check DWD runs, copy, start new!
+- Finish ensemble airep
+    - check which data is missing
+- Start analysis precipitation verif
+
+## October 18
+
+Check which verifications are missing.
+- SYNOP for det noDA_PSPv2
+- SYNOP for all forecast ensembles
 
 

@@ -38,15 +38,15 @@ def compute_det_synop(diff, time):
     return [rmse, bias]
 
 
-def compute_det_air(diff, time, plevel, verif_time, obs):
+def compute_det_air(diff, time, plevel, verif_time, obs_type):
     """Compute deterministic upper air statistics
 
     Args:
-        diff: Numpy array with difference obs - fc for each data point
+        diff: Numpy array with difference fc - obs for each data point
         time: Corresponding time array
         plevel: Pressure for obs
         verif_time: list with start and stop verif time iin hours
-        obs: TEMP or AIREP
+        obs_type: TEMP or AIREP
 
     Returns:
         [rmse, bias]
@@ -64,6 +64,40 @@ def compute_det_air(diff, time, plevel, verif_time, obs):
     rmse = np.sqrt(binned_statistic(plevel, np.array(diff) ** 2,
                                     bins=bin_edges)[0])
     return [rmse, bias]
+
+
+def compute_ens_air(ens_mean, ens_spread, obs, time, plevel, verif_time,
+                    obs_type):
+    """Compute ensemble upper air statistics
+
+    Args:
+        diff: Numpy array with difference obs - fc for each data point
+        time: Corresponding time array
+        plevel: Pressure for obs
+        verif_time: list with start and stop verif time iin hours
+        obs_type: TEMP or AIREP
+
+    Returns:
+        [rmse, spread]
+    """
+    # Cut out requested time
+    mask = (time >= verif_time[0] * 60.) & (time <= verif_time[1] * 60.)
+    plevel = plevel[mask]
+    ens_mean = ens_mean[mask]
+    ens_spread = ens_spread[mask]
+    obs = obs[mask]
+    print 'Obs: %i/%i' % (np.sum(mask), mask.shape[0])
+
+    # compute statistics
+    diff = ens_mean - obs
+
+    # Bin statistic according to pressure level
+    bin_edges = config.temp_bin_edges if obs_type == 'TEMP' \
+        else config.airep_bin_edges
+    spread = binned_statistic(plevel, ens_spread, bins=bin_edges)[0]
+    rmse = np.sqrt(binned_statistic(plevel, np.array(diff) ** 2,
+                                    bins=bin_edges)[0])
+    return [rmse, spread]
 
 
 def compute_verif(inargs, exp_id, date):
@@ -95,7 +129,7 @@ def compute_verif(inargs, exp_id, date):
         plevel = fof.obs(param='level', **fkw)
 
         # Compute statistics
-        diff = obs - fc
+        diff = fc - obs
 
         if inargs.obs == 'SYNOP':
             results = compute_det_synop(diff, time)
@@ -105,7 +139,6 @@ def compute_verif(inargs, exp_id, date):
         else:
             raise TypeError, 'Wrong obs type.'
     elif inargs.fc_type == 'ens':
-        print 'SYNOP data missing for ensembles...'
         # Loop over ensemble members
         ens_list = []
         for ie in range(20):   # ATTENTION: Hard coded ensemble size
@@ -117,18 +150,22 @@ def compute_verif(inargs, exp_id, date):
             obs = fof.obs(**fkw)
             fc = fof.fg(**fkw)
             time = fof.obs(param='time', **fkw)
+            plevel = fof.obs(param='level', **fkw)
             ens_list.append(fc)
 
         # compute statistics
         ens_mean = np.mean(ens_list, axis=0)
         ens_spread = np.std(ens_list, axis=0, ddof=1)
 
-        # Bin statistic according to time
-        bin_edges = np.arange(0, (24 + 1) * 60, 60)  # Hourly bins
-        spread = binned_statistic(time, ens_spread, bins=bin_edges)[0]
-        rmse = np.sqrt(binned_statistic(time, np.array(obs - ens_mean) ** 2,
-                                        bins=bin_edges)[0])
-        results = [rmse, spread]
+        if inargs.obs == 'SYNOP':
+            print 'SYNOP data missing for ensembles...'
+            results = compute_ens_synop(diff, time)
+        elif inargs.obs in ['TEMP', 'AIREP']:
+            results = compute_ens_air(ens_mean, ens_spread, obs, time, plevel,
+                                      inargs.air_verif_time, inargs.obs)
+        else:
+            raise TypeError, 'Wrong obs type.'
+
     else:
         raise TypeError, 'Wrong fc_type.'
 
