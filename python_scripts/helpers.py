@@ -138,9 +138,10 @@ def load_det_da(datadir, t, return_array=False):
     else:
         return detfobj
 
+
 def load_ens_da(datadir, t, return_array=False):
     gribfn = gribpref_da + t + precsuf_da
-    ensfobjlist = getfobj_ens(datadir, 'same', mems=nens, gribfn=gribfn,
+    ensfobjlist = getfobj_ens(datadir, 'same', mems=nens_da, gribfn=gribfn,
                               fieldn='TOT_PREC_S', para=4)
     if return_array:
         return [fobj.data for fobj in ensfobjlist]
