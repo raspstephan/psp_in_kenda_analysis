@@ -26,6 +26,7 @@ def compute_metric(inargs, exp_id, date):
         metric: Numpy array with dimensions [time, metric_dim]
     """
     date_str = h.dt_to_yyyymmddhhmmss(date)
+    fg_str = '_da' if inargs.fg else ''
 
     # Load presaved forecast data
     if exp_id == 'radar':   # Make an exception for radar as exp_id
@@ -39,7 +40,7 @@ def compute_metric(inargs, exp_id, date):
                  config.metric_dict[inargs.metric.split('-')[0]]['var'] +
                  '_fields/' +
                  config.metric_dict[inargs.metric.split('-')[0]]['det_or_ens'] +
-                 '_' + date_str + '.npy')
+                 fg_str + '_' + date_str + '.npy')
         fc_data = np.load(fc_fn)
 
     if config.metric_dict[inargs.metric.split('-')[0]]['use_radar']:
@@ -113,9 +114,10 @@ def get_metric_for_one_day(inargs, exp_id, date):
     """
 
     # Create savestr
+    fg_str = '_da' if inargs.fg else ''
     up_str = '_up-' + str(inargs.upscale) if inargs.upscale > 1 else ''
     save_fn = (config.savedir_base + exp_id + '/' + inargs.metric + '_' +
-               h.dt_to_yyyymmddhhmmss(date) + up_str + '.npy')
+               h.dt_to_yyyymmddhhmmss(date) + up_str + fg_str + '.npy')
 
     # Check if save_fn exists or recompute
     print 'Check if pre-computed file exists: %s' % save_fn
@@ -171,7 +173,10 @@ def plot_panel(inargs, plot_list, title_str):
                          config.metric_dict[inargs.metric.split('-')[0]]
                          ['plot_type'])
     exp_id_str = '_'.join([e for e in inargs.exp_id if not e == 'radar'])
-    plot_dir = config.plotdir + '/' + exp_id_str + '/forecast_metrics/'
+    if inargs.fg:
+        plot_dir = config.plotdir + '/' + exp_id_str + '/forecast_metrics/'
+    else:
+        plot_dir = config.plotdir + '/' + exp_id_str + '/fg_precipitation/'
     plot_str = inargs.metric + '_' + title_str
     h.save_fig_and_log(fig, plot_str, plot_dir)
 
@@ -250,6 +255,11 @@ if __name__ == '__main__':
                         type=int,
                         default=1,
                         help='Upscaling neighborhood.')
+    parser.add_argument('--fg',
+                        dest='fg',
+                        action='store_true',
+                        help='First guess forecasts.')
+    parser.set_defaults(fg=False)
 
     args = parser.parse_args()
 
