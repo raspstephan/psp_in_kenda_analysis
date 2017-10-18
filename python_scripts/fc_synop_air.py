@@ -58,7 +58,7 @@ def compute_det_air(diff, time, plevel, verif_time, obs_type):
     print 'Obs: %i/%i' % (np.sum(mask), mask.shape[0])
 
     # Bin statistic according to pressure level
-    bin_edges = config.temp_bin_edges if obs == 'TEMP' \
+    bin_edges = config.temp_bin_edges if obs_type == 'TEMP' \
         else config.airep_bin_edges
     bias = binned_statistic(plevel, diff, bins=bin_edges)[0]
     rmse = np.sqrt(binned_statistic(plevel, np.array(diff) ** 2,
@@ -189,9 +189,11 @@ def get_verification_for_one_day(inargs, exp_id, date):
     """
 
     # Create savestr
+    verif_str = '_%ih-%ih' % tuple(inargs.air_verif_time) \
+        if inargs.air_verif_time is not None else ''
     save_fn = (config.savedir_base + exp_id + '/fof_' + inargs.obs + '_' +
                inargs.var + '_' + inargs.fc_type + '_' +
-               h.dt_to_yyyymmddhhmmss(date) + '.npy')
+               h.dt_to_yyyymmddhhmmss(date) + verif_str + '.npy')
     # Check if save_fn exists or recompute
     print 'Check if pre-computed file exists: %s' % save_fn
     if not os.path.exists(save_fn) or inargs.recompute:

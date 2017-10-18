@@ -105,12 +105,15 @@ Tomorrow:
 - Check DWD runs, copy, start new!
 - Finish ensemble airep
     - check which data is missing
-- Start analysis precipitation verif
+- Start analysis precipitation verif--> Done
 
 ## October 18
 
 Check which verifications are missing.
-- SYNOP for det noDA_PSPv2
+- SYNOP for det noDA_PSPv2 --> Running
 - SYNOP for all forecast ensembles
 
+Tomorrow:
+- Do fg precipitation analysis and put in paper.tex
+- Do Synop and air analysis for forecasts and put in paper.tex
 
