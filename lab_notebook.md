@@ -114,9 +114,9 @@ Check which verifications are missing.
 - SYNOP for all forecast ensembles
 
 Tomorrow:
-- Redo ensemble fc precipitation with noDA --> wait
+- Redo ensemble fc precipitation with noDA --> wait for preprocess. TMR!
 - Do fg precipitation analysis and put in paper.tex
-- Do Synop and air analysis for forecasts and put in paper.tex --> wait
+- Do Synop and air analysis for forecasts and put in paper.tex --> wait for SYNC
 
 ## October 19
 

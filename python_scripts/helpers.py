@@ -480,12 +480,20 @@ def handle_nans(radar_data, fc_data, radar_thresh):
     Returns:
         radar_data, fc_data: Same arrays with NaNs 
     """
-    mask = (np.max(radar_data, axis=0) > radar_thresh) & (np.isnan(fc_data))
+    mask = np.max(radar_data, axis=0) > radar_thresh
     radar_data[:, mask] = np.nan
     if fc_data.ndim == 3:
+        missing = np.isnan(np.sum(fc_data, axis=(1, 2)))
         fc_data[:, mask] = np.nan
     else:
+        missing = np.isnan(np.sum(fc_data, axis=(1, 2, 3)))
         fc_data[:, :, mask] = np.nan
+
+    # Check if forecast data is missing
+    if missing.sum() > 0:
+        radar_data[missing, :] = np.nan
+        fc_data[missing, :] = np.nan
+
     return radar_data, fc_data
 
 
