@@ -248,7 +248,9 @@ def main(inargs):
     # Get ylabel
     if inargs.var == 'T2M': ylabel = 'T2M [K]'
     elif inargs.var == 'PS': ylabel = 'PS [Pa]'
+    elif inargs.var == 'RH2M': ylabel = 'RH2M [%]'
     elif inargs.var == 'T': ylabel = 'T [K]'
+    elif inargs.var in ['U10M', 'V10M']: ylabel = inargs.var + ' [m/s]'
     else: raise TypeError, 'Var not implemented.'
 
     ylabel = ylabel + ' rmse(-) and bias(--)' if inargs.fc_type == 'det' \
@@ -292,7 +294,7 @@ if __name__ == '__main__':
                         help='Experiment ID')
     parser.add_argument('--date_start',
                         type=str,
-                        default='20160526000000',
+                        default='20160527000000',
                         help='Start date for date loop (yyyymmddhhmmss)')
     parser.add_argument('--date_stop',
                         type=str,
