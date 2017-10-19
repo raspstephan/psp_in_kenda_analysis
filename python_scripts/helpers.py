@@ -480,7 +480,7 @@ def handle_nans(radar_data, fc_data, radar_thresh):
     Returns:
         radar_data, fc_data: Same arrays with NaNs 
     """
-    mask = np.max(radar_data, axis=0) > radar_thresh
+    mask = (np.max(radar_data, axis=0) > radar_thresh) & (np.isnan(fc_data))
     radar_data[:, mask] = np.nan
     if fc_data.ndim == 3:
         fc_data[:, mask] = np.nan

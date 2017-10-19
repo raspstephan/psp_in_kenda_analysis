@@ -1,5 +1,5 @@
 """
-Compute and plot metrics from KENDA forecast files.
+Compute and plot metrics from KENDA forecast  and firt guess files.
 
 """
 
@@ -173,8 +173,8 @@ def plot_panel(inargs, plot_list, title_str):
                          config.metric_dict[inargs.metric.split('-')[0]]
                          ['plot_type'])
     exp_id_str = '_'.join([e for e in inargs.exp_id if not e == 'radar'])
-    if inargs.fg:
-        plot_dir = config.plotdir + '/' + exp_id_str + '/forecast_metrics/'
+    if not inargs.fg:
+        plot_dir = config.plotdir + '/' + exp_id_str + '/fc_precipitation/'
     else:
         plot_dir = config.plotdir + '/' + exp_id_str + '/fg_precipitation/'
     plot_str = inargs.metric + '_' + title_str

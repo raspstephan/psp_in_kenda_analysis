@@ -114,6 +114,11 @@ Check which verifications are missing.
 - SYNOP for all forecast ensembles
 
 Tomorrow:
+- Redo ensemble fc precipitation with noDA --> wait
 - Do fg precipitation analysis and put in paper.tex
-- Do Synop and air analysis for forecasts and put in paper.tex
+- Do Synop and air analysis for forecasts and put in paper.tex --> wait
 
+## October 19
+
+- Check DWD runs --> Synch last missing run. I should have all forecast data now except ensemble SYNOP.
+    - Need to preprocess as well --> Running
