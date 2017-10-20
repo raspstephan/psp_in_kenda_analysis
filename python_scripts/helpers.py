@@ -818,7 +818,7 @@ def plot_synop(plot_list, exp_ids, title, ylabel):
     """
 
     fig, ax = plt.subplots(1, 1, figsize=(0.5 * pw, 0.5 * pw))
-    x = np.arange(1, 25)
+    x = np.arange(2, 25)
     for ie, e in enumerate(exp_ids):
         ax.plot(x, plot_list[ie][0], c=cdict[e], label=e)
         ax.plot(x, plot_list[ie][1], c=cdict[e], linestyle='--')

@@ -31,7 +31,8 @@ def compute_det_synop(diff, time):
         [rmse, bias]
     """
     # Bin statistic according to time
-    bin_edges = np.arange(0, (24 + 1) * 60, 60)  # Hourly bins
+    print 'SYNOP total obs: %i' % diff.shape[0]
+    bin_edges = np.arange(60, (24 + 1) * 60, 60)  # Hourly bins
     bias = binned_statistic(time, diff, bins=bin_edges)[0]
     rmse = np.sqrt(binned_statistic(time, np.array(diff) ** 2,
                                     bins=bin_edges)[0])

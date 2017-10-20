@@ -110,16 +110,29 @@ Tomorrow:
 ## October 18
 
 Check which verifications are missing.
-- SYNOP for det noDA_PSPv2 --> Running
+- SYNOP for det noDA_PSPv2 --> Done
 - SYNOP for all forecast ensembles
 
 Tomorrow:
-- Redo ensemble fc precipitation with noDA --> Preprocessing done. TMR!
+- Redo ensemble fc precipitation with noDA --> Preprocessing done --> Running in screen
 - Do fg precipitation analysis and put in paper.tex. --> Done
 - Do Synop and air analysis for forecasts and put in paper.tex --> Done
 
 ## October 19
 
 - Check DWD runs --> Synch last missing run. I should have all forecast data now except ensemble SYNOP.
-    - Need to preprocess as well --> Running
-- Bug in DA preprocessing, check tomorrow when nb is done!
+    - Need to preprocess as well --> Done
+- Bug in DA preprocessing, check tomorrow when nb is done! --> TMR
+
+Tmr:
+- include new ensemble plots --> Done
+- Think about story for G! --> Done
+
+
+## October 20
+
+Debug:
+- last time step for fg forecasts --> Found bug, rerunning fg preprocessing
+- first time step for SYNOP (some of them...)
+    - SYNOP pbs are not the same for all runs! (Probably one file missing or obs changed...)
+    - But why is first bin off: Hardly any observations... Leave out?
