@@ -135,4 +135,8 @@ Debug:
 - last time step for fg forecasts --> Found bug, rerunning fg preprocessing
 - first time step for SYNOP (some of them...)
     - SYNOP pbs are not the same for all runs! (Probably one file missing or obs changed...)
-    - But why is first bin off: Hardly any observations... Leave out?
+    - But why is first bin off: Hardly any observations... Leave out? Yup!
+    - Rerunning det fc's with new SYNOP --> Running
+
+Next time:
+- Check DWD runs and start next forecast
