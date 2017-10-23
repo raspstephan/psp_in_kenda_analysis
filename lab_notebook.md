@@ -140,3 +140,20 @@ Debug:
 
 Next time:
 - Check DWD runs and start next forecast
+
+## October 23
+
+Runs:
+- DA_PSPv2 det didn't run --> restart
+
+Tasks:
+- See if fg bug is fixed! --> Yes. Recomputing all scores!
+- Start paper!
+
+Still to do:
+- time axis label
+- colors
+- All days di prec
+- Stamps
+- FSS for different scales (5 15) --> Done. put in paper --> Done
+- FSS for larger threshold 5mm/h for 15 pts --> Running
