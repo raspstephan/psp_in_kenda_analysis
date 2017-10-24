@@ -155,5 +155,18 @@ Still to do:
 - colors
 - All days di prec
 - Stamps
+- Upscaled BS does not make any sense! (1)
 - FSS for different scales (5 15) --> Done. put in paper --> Done
-- FSS for larger threshold 5mm/h for 15 pts --> Running
+- FSS for larger threshold 5mm/h for 15 pts --> Running --> Done!
+
+## October 24
+
+- Check DWD runs --> Again, didn't work. Why? Wrong data directory --> Restart
+- Keep writing!
+
+(1) I think I made it somewhat analog to part of the FSS, recomputeing for 0.1, 1.0 and 15/31 and fg 15, probably should also do 5 mm, running for fg
+
+
+Tmr: 
+- Check DWD run, restart
+- 

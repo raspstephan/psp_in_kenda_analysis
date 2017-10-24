@@ -654,18 +654,22 @@ def compute_ens_rmv(fc_data):
     return rmv
 
 
-def compute_ens_bs(radar_data, fc_data, bs_thresh):
+def compute_ens_bs(radar_data, fc_data, bs_thresh, bs_size=None):
     """Compute Ensemble Brier Score
 
     Args:
         radar_data: Radar data [hour, x, y]
         fc_data: forecast data of ensemble [hour, ens, x, y]
         bs_thresh : Threshold value in mm/h
+        bs_size: If given upscale the probability fields
     Returns:
         bs: Numpy array with dimensions [hour]
     """
     prob_fc = np.mean((fc_data > bs_thresh), axis=1)
     bin_obs = radar_data > bs_thresh
+    if bs_size is not None:
+        prob_fc = upscale_fields(prob_fc, bs_size)
+        bin_obs = upscale_fields(bin_obs, bs_size)
     bs = np.nanmean((prob_fc - bin_obs) ** 2, axis=(1,2))
     return bs
 
@@ -712,7 +716,7 @@ def plot_line(plot_list, exp_ids, metric, title):
     if len(split_metric) == 1:
         ax.set_ylabel(metric_dict[metric]['ylabel'])
     else:
-        yl = metric_dict[split_metric[0]]['ylabel']  % tuple(split_metric[1:])
+        yl = metric_dict[split_metric[0]]['ylabel'] % tuple(split_metric[1:])
         ax.set_ylabel(yl)
     ax.set_title(title)
     ax.legend(loc=0, fontsize=6)

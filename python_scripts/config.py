@@ -155,6 +155,6 @@ metric_dict = {
         'use_radar': True,
         'det_or_ens': 'ens',
         'plot_type': 'line',
-        'ylabel': 'BS %s mm/h',
+        'ylabel': 'BS %s mm/h %s pts',
     },
 }
