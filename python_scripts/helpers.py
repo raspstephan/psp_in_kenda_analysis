@@ -22,6 +22,7 @@ from scipy.ndimage.filters import convolve
 import pdb
 
 np.seterr(invalid='ignore')
+plt.rcParams['lines.linewidth'] = 1.7
 
 def save_fig_and_log(fig, fig_name, plot_dir):
     """

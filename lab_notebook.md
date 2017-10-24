@@ -152,7 +152,7 @@ Tasks:
 
 Still to do:
 - time axis label
-- colors
+- colors --> Doing that now!
 - All days di prec
 - Stamps
 - Upscaled BS does not make any sense! (1)
@@ -169,4 +169,4 @@ Still to do:
 
 Tmr: 
 - Check DWD run, restart
-- 
+- Include new BS results.
