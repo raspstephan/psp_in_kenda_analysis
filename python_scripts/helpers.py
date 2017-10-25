@@ -24,6 +24,7 @@ import pdb
 np.seterr(invalid='ignore')
 plt.rcParams['lines.linewidth'] = 1.7
 
+
 def save_fig_and_log(fig, fig_name, plot_dir):
     """
     Save the given figure along with a log file

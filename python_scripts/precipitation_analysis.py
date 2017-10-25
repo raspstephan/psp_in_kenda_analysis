@@ -28,11 +28,12 @@ def compute_metric(inargs, exp_id, date):
     date_str = h.dt_to_yyyymmddhhmmss(date)
     fg_str = '_da' if inargs.fg else ''
 
+    radar_str = 'ey' if inargs.use_ey else 'radar'
     # Load presaved forecast data
     if exp_id == 'radar':   # Make an exception for radar as exp_id
-        radar_fn = (config.savedir_base + 'radar/' +
+        radar_fn = (config.savedir_base + radar_str + '/' +
                     config.metric_dict[inargs.metric.split('-')[0]]['var'] +
-                    '_fields/' + 'radar_' +
+                    '_fields/' + radar_str + '_' +
                     date_str + '.npy')
         fc_data = np.load(radar_fn)
     else:
@@ -45,8 +46,8 @@ def compute_metric(inargs, exp_id, date):
 
     if config.metric_dict[inargs.metric.split('-')[0]]['use_radar']:
         # Load presaved radar data
-        radar_fn = (config.savedir_base + 'radar/prec_fields/' + 'radar_' +
-                    date_str + '.npy')
+        radar_fn = (config.savedir_base + radar_str + '/prec_fields/' +
+                    radar_str + '_' + date_str + '.npy')
         radar_data = np.load(radar_fn)
         radar_data, fc_data = h.handle_nans(radar_data, fc_data,
                                             inargs.radar_thresh)
@@ -262,6 +263,11 @@ if __name__ == '__main__':
                         action='store_true',
                         help='First guess forecasts.')
     parser.set_defaults(fg=False)
+    parser.add_argument('--use_ey',
+                        dest='use_ey',
+                        action='store_true',
+                        help='Use EY Product. Otherwise RW.')
+    parser.set_defaults(use_ey=False)
 
     args = parser.parse_args()
 
