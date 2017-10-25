@@ -88,15 +88,8 @@ def compute_metric(inargs, exp_id, date):
     elif 'ens_bs' in inargs.metric:
         # Parse
         s = inargs.metric.split('-')
-        if len(s) == 2:
-            _, bs_thresh = s
-            bs_size = None
-            inargs.metric = inargs.metric + '-1'
-        elif len(s) == 3:
-            _, bs_thresh, bs_size = s
-            bs_size = int(bs_size)
-        else:
-            raise ValueError('Wrong metric argument for BS.')
+        _, bs_thresh, bs_size = s
+        bs_size = int(bs_size)
         bs_thresh = float(bs_thresh) / 10.
         # Update dictionary
         # config.metric_dict[inargs.metric.split('-')[0]]['ylabel'] = \

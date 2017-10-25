@@ -169,4 +169,13 @@ Still to do:
 
 Tmr: 
 - Check DWD run, restart
-- Include new BS results.
+- Include new BS results. --> Not sure I am doing this right...
+
+
+## October 25
+
+- DWD runs
+    - not quite sure what is going on with DA_REF and DA_REF_new...
+    - Started DA_REF_TL500
+- Ensemble skill
+    - Make a notebook

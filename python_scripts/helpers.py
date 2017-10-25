@@ -655,7 +655,7 @@ def compute_ens_rmv(fc_data):
     return rmv
 
 
-def compute_ens_bs(radar_data, fc_data, bs_thresh, bs_size=None):
+def compute_ens_bs(radar_data, fc_data, bs_thresh, bs_size=1):
     """Compute Ensemble Brier Score
 
     Args:
@@ -666,9 +666,12 @@ def compute_ens_bs(radar_data, fc_data, bs_thresh, bs_size=None):
     Returns:
         bs: Numpy array with dimensions [hour]
     """
+    mask = np.isnan(radar_data)
     prob_fc = np.mean((fc_data > bs_thresh), axis=1)
-    bin_obs = radar_data > bs_thresh
-    if bs_size is not None:
+    bin_obs = np.array(radar_data > bs_thresh, dtype=float)
+    prob_fc[mask] = np.nan
+    bin_obs[mask] = np.nan
+    if bs_size > 1:
         prob_fc = upscale_fields(prob_fc, bs_size)
         bin_obs = upscale_fields(bin_obs, bs_size)
     bs = np.nanmean((prob_fc - bin_obs) ** 2, axis=(1,2))
