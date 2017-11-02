@@ -21,7 +21,8 @@ else:
     raise Exception('Working directory not recognized:' + os.getcwd())
 
 # Config for experiment
-cdict = {'radar': 'k',
+cdict = {'ey': 'k',
+         'rw': 'gray',
          'REF': 'navy',
          'REF_TL500': 'darkgreen',
          'PSP_TL500': 'orange',

@@ -470,7 +470,7 @@ def dt_to_yyyymmddhhmmss(dt):
     return datetime.strftime(dt, f)
 
 
-def handle_nans(radar_data, fc_data, radar_thresh):
+def handle_nans(radar_data, fc_data, radar_thresh, combine_masks=None):
     """Handle NaNs on a daily basis.
     
     Args:
@@ -478,11 +478,13 @@ def handle_nans(radar_data, fc_data, radar_thresh):
         fc_data: Forecast data array with dimensions [time, x, y] or 
                  [time, ens, x, y]
         radar_thresh: Threshold, NaNs above.
-
+        combine_masks: If True, combine daily masks from both fields.
     Returns:
         radar_data, fc_data: Same arrays with NaNs 
     """
     mask = np.max(radar_data, axis=0) > radar_thresh
+    if combine_masks is not None:
+        mask = np.logical_or(mask, np.max(combine_masks, axis=0) > radar_thresh)
     radar_data[:, mask] = np.nan
     if fc_data.ndim == 3:
         missing = np.isnan(np.sum(fc_data, axis=(1, 2)))

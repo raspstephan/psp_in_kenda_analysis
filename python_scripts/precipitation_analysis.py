@@ -1,6 +1,8 @@
 """
 Compute and plot metrics from KENDA forecast  and firt guess files.
 
+TODO:
+- explicitely pick which radar product for masking and verification 
 """
 
 # Imports
@@ -28,13 +30,10 @@ def compute_metric(inargs, exp_id, date):
     date_str = h.dt_to_yyyymmddhhmmss(date)
     fg_str = '_da' if inargs.fg else ''
 
-    radar_str = 'ey' if inargs.use_ey else 'radar'
     # Load presaved forecast data
-    if exp_id == 'radar':   # Make an exception for radar as exp_id
-        radar_fn = (config.savedir_base + radar_str + '/' +
-                    config.metric_dict[inargs.metric.split('-')[0]]['var'] +
-                    '_fields/' + radar_str + '_' +
-                    date_str + '.npy')
+    if exp_id in ['ey', 'rw']:   # Make an exception for radar as exp_id
+        radar_fn = (config.savedir_base + exp_id + '/prec_fields/' + exp_id +
+                    '_' + date_str + '.npy')
         fc_data = np.load(radar_fn)
     else:
         fc_fn = (config.savedir_base + exp_id + '/' +
@@ -46,11 +45,19 @@ def compute_metric(inargs, exp_id, date):
 
     if config.metric_dict[inargs.metric.split('-')[0]]['use_radar']:
         # Load presaved radar data
-        radar_fn = (config.savedir_base + radar_str + '/prec_fields/' +
-                    radar_str + '_' + date_str + '.npy')
+        radar_fn = (config.savedir_base + inargs.radar_comp + '/prec_fields/' +
+                    inargs.radar_comp + '_' + date_str + '.npy')
         radar_data = np.load(radar_fn)
+        if inargs.combine_masks is not None:
+            comb_fn = (config.savedir_base + inargs.combine_masks +
+                       '/prec_fields/' + inargs.combine_masks + '_' +
+                       date_str + '.npy')
+            comb_data = np.load(comb_fn)
+        else:
+            comb_data = None
         radar_data, fc_data = h.handle_nans(radar_data, fc_data,
-                                            inargs.radar_thresh)
+                                            inargs.radar_thresh,
+                                            comb_data)
 
     if not inargs.upscale == 1:
         fc_data = h.upscale_fields(fc_data, inargs.upscale)
@@ -119,8 +126,12 @@ def get_metric_for_one_day(inargs, exp_id, date):
     # Create savestr
     fg_str = '_da' if inargs.fg else ''
     up_str = '_up-' + str(inargs.upscale) if inargs.upscale > 1 else ''
+    radar_str = '_' + inargs.radar_comp
+    if inargs.combine_masks is not None:
+        radar_str += '_comb-' + inargs.combine_masks
     save_fn = (config.savedir_base + exp_id + '/' + inargs.metric + '_' +
-               h.dt_to_yyyymmddhhmmss(date) + up_str + fg_str + '.npy')
+               h.dt_to_yyyymmddhhmmss(date) + up_str + fg_str +
+               radar_str + '.npy')
 
     # Check if save_fn exists or recompute
     print 'Check if pre-computed file exists: %s' % save_fn
@@ -161,6 +172,8 @@ def plot_panel(inargs, plot_list, title_str):
         plot_list: List of metrics [exp_id][time, metric_dim]
         title_str: Title
     """
+    if not inargs.upscale == 1:
+        title_str += '_up-' + str(inargs.upscale)
 
     if config.metric_dict[inargs.metric.split('-')[0]]['plot_type'] == 'line':
         fig = h.plot_line(plot_list, inargs.exp_id, inargs.metric,
@@ -180,7 +193,12 @@ def plot_panel(inargs, plot_list, title_str):
         plot_dir = config.plotdir + '/' + exp_id_str + '/fc_precipitation/'
     else:
         plot_dir = config.plotdir + '/' + exp_id_str + '/fg_precipitation/'
-    plot_str = inargs.metric + '_' + title_str
+
+    plot_str = inargs.metric + '_' + title_str + '_' + inargs.radar_comp
+
+    if inargs.combine_masks is not None:
+        plot_str += '_comb-' + inargs.combine_masks
+
     h.save_fig_and_log(fig, plot_str, plot_dir)
 
 
@@ -199,8 +217,6 @@ def main(inargs):
     if inargs.composite:
         plot_list = [np.nanmean(r, axis=0) for r in results_list]
         title_str = args.date_start[:-4] + '-' + args.date_stop[:-4]
-        if not inargs.upscale == 1:
-            title_str += '_up-' + str(inargs.upscale)
         plot_panel(inargs, plot_list, title_str)
 
     else:
@@ -209,8 +225,6 @@ def main(inargs):
                                                      inargs.hours_inc)):
             plot_list = [r[idate] for r in results_list]
             title_str = h.dt_to_yyyymmddhhmmss(date)[:-4]
-            if not inargs.upscale == 1:
-                title_str += '_up-' + str(inargs.upscale)
             plot_panel(inargs, plot_list, title_str)
 
 
@@ -263,11 +277,14 @@ if __name__ == '__main__':
                         action='store_true',
                         help='First guess forecasts.')
     parser.set_defaults(fg=False)
-    parser.add_argument('--use_ey',
-                        dest='use_ey',
-                        action='store_true',
-                        help='Use EY Product. Otherwise RW.')
-    parser.set_defaults(use_ey=False)
+    parser.add_argument('--radar_comp',
+                        type=str,
+                        help='Either rw or ey. Which radar product for '
+                             'masking and score computation.')
+    parser.add_argument('--combine_masks',
+                        type=str,
+                        default=None,
+                        help='Give another radar product to use a comb mask.')
 
     args = parser.parse_args()
 
